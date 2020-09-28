@@ -1,2 +1,2 @@
 # VUT-IZV
-Zpracování a vizualizace dat v prostředí Python
+Data processing and visualization in Python
