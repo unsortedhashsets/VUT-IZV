@@ -4,13 +4,13 @@
             "previewLimit": 100,
             "driver": "SQLite",
             "name": "data",
-            "database": "${workspaceFolder:BONUS}/data.sqlite"
+            "database": "${workspaceFolder:2b}/data.sqlite"
         },
         {
             "previewLimit": 50,
             "driver": "SQLite",
             "name": "devel",
-            "database": "${workspaceFolder:BONUS}/devel.sqlite"
+            "database": "${workspaceFolder:2b}/devel.sqlite"
         }
     ]
 }
