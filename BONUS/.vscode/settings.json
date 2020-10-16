@@ -1,0 +1,16 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 100,
+            "driver": "SQLite",
+            "name": "data",
+            "database": "${workspaceFolder:BONUS}/data.sqlite"
+        },
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "devel",
+            "database": "${workspaceFolder:BONUS}/devel.sqlite"
+        }
+    ]
+}
