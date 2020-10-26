@@ -7,7 +7,7 @@ from datetime import datetime
 
 
 columns_names = [
-    "REGION", "IDENTIFIKAČNÍ ČÍSLO", "DRUH POZEMNÍ KOMUNIKACE", "ČÍSLO POZEMNÍ KOMUNIKACE", "den, měsíc, rok",
+    "REGION", "IC", "DRUH POZEMNÍ KOMUNIKACE", "ČÍSLO POZEMNÍ KOMUNIKACE", "den, měsíc, rok",
     "weekday", "čas", "DRUH NEHODY", "DRUH SRÁŽKY JEDOUCÍCH VOZIDEL", "DRUH PEVNÉ PŘEKÁŽKY",
     "CHARAKTER NEHODY", "ZAVINĚNÍ NEHODY", "ALKOHOL U VINÍKA NEHODY PŘÍTOMEN", "HLAVNÍ PŘÍČINY NEHODY",
     "usmrceno osob", "těžce zraněno osob", "lehce zraněno osob", "CELKOVÁ HMOTNÁ ŠKODA", "DRUH POVRCHU VOZOVKY",
@@ -17,11 +17,20 @@ columns_names = [
     "SMĚROVÉ POMĚRY", "POČET ZÚČASTNĚNÝCH VOZIDEL", "MÍSTO DOPRAVNÍ NEHODY", "DRUH KŘIŽUJÍCÍ KOMUNIKACE", "DRUH VOZIDLA",
     "VÝROBNÍ ZNAČKA MOTOROVÉHO VOZIDLA", "ROK VÝROBY VOZIDLA", "CHARAKTERISTIKA VOZIDLA", "SMYK", "VOZIDLO PO NEHODĚ",
     "ÚNIK PROVOZNÍCH, PŘEPRAVOVANÝCH HMOT", "ZPŮSOB VYPROŠTĚNÍ OSOB Z VOZIDLA", "SMĚR JÍZDY NEBO POSTAVENÍ VOZIDLA",
-    "ŠKODA NA VOZIDLE", "KATEGORIE ŘIDIČE", "STAV ŘIDIČE", "VNĚJŠÍ OVLIVNĚNÍ ŘIDIČE", "a", "b", "souřadnice X",
-    "souřadnice Y", "f", "g", "h", "i", "j", "k", "l", "n", "o", "p", "q", "r", "s", "t", "LOKALITA NEHODY"
+    "ŠKODA NA VOZIDLE", "KATEGORIE ŘIDIČE", "STAV ŘIDIČE", "VNĚJŠÍ OVLIVNĚNÍ ŘIDIČE", 
+    "a", "b", "souřadnice X", "souřadnice Y", "f", "g", "h", "i", "j", "k", "l", "n", "o", "p", "q", "r", "s", "t", "LOKALITA NEHODY"
 ]
 
-regions = {
+data_types = [
+    'U3', 'U12', 'i1', 'i4', 'M', 'i1', 'U5', 'i1', 'i1', 'i1',
+    'i1', 'i1', 'i1', 'i2', 'i1', 'i1', 'i1', 'i4', 'i1', 'i1',
+    'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1',
+    'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1',
+    'i1', 'i1', 'i2', 'i1', 'i1', 'i1', 'f', 'f', 'f', 'f', 'f', 'f',
+    'U','U','U','U','U','U','U','U','U','U','U','U','i1'
+]
+
+regions_files = {
     "PHA": "00.csv",  # nehody na území hl. m. Prahy
     "STC": "01.csv",  # nehody na území Středočeského kraje
     "JHC": "02.csv",  # nehody na území Jihočeského kraje
@@ -82,6 +91,22 @@ class DataDownloader:
         self.url = url
         self.folder = folder
         self.cache_filename = cache_filename
+        self.regions_cash = {
+            "PHA": None,
+            "STC": None,
+            "JHC": None,
+            "PLK": None,
+            "ULK": None,
+            "HKK": None,
+            "JHM": None,
+            "MSK": None,
+            "OLK": None,
+            "ZLK": None,
+            "VYS": None,
+            "PAK": None,
+            "LBK": None,
+            "KVK": None,
+        }
 
     """
         funkce stáhne do datové složky ​ folder​ všechny soubory s daty z adresy ​ url​ .
@@ -120,9 +145,7 @@ class DataDownloader:
         print(f"Finished with: {self.url}")
 
     def parse_region_data(self, region):
-        file_name = regions.get(region)
-        #colums = [None] * 64
-        #output = (columns_names,colums)
+        file_name = regions_files.get(region)
         df = None
         if file_name == None:
             print(f"ERROR: {region} not found")
@@ -133,19 +156,96 @@ class DataDownloader:
                 if csv_file == file_name:
                     print(zip_file, file_name)
                     if df is None:
-                        df = np.genfromtxt(zf.open(csv_file), delimiter=";", encoding="ISO-8859-1", dtype="unicode", usecols=np.arange(0,64))
+                        df = np.genfromtxt(zf.open(csv_file), delimiter=";",
+                                                              encoding="ISO-8859-1",
+                                                              autostrip=True,
+                                                              dtype="unicode",
+                                                              usecols=np.arange(0,64))
                     else:
-                        df = np.append(df, np.genfromtxt(zf.open(csv_file), delimiter=";", encoding="ISO-8859-1", dtype="unicode", usecols=np.arange(0,64)), 0)
+                        df = np.append(df, np.genfromtxt(zf.open(csv_file), delimiter=";", 
+                                                                            encoding="ISO-8859-1",
+                                                                            dtype="U",
+                                                                            autostrip=True,
+                                                                            usecols=np.arange(0,64)), 0)
                     print(f'2d np.array size: {len(df)}x{len(df[0])}')
-        output = (columns_names, list(np.insert(df, 0, region, axis=1).transpose()))
-        for i in range(0,64):
-            print(f'{i+1}. row name: <{output[0][i]}>; element 0: <{output[1][i]}>; elements type: "{output[1][i][0].dtype}"')
+        columns_data = np.insert(df, 0, region, axis=1).transpose()
+        
+        
+        columns_data[columns_data=='""']='-1' 
+        columns_data[columns_data=='']='-1' 
+        
+        columns_data = list(columns_data)
 
+        for i in range(0,65):
+            columns_data[i] = self.parse_ndarray(columns_data[i], data_types[i])
+            print(f'{i}. <{columns_names[i]}> -- <{columns_data[i]}> -- "{columns_data[i][0].dtype}"')
+
+        output = (columns_names, columns_data)
+
+        return output
+            
+    def parse_ndarray(self, ndarray, dtype):
+        ndarray = np.char.replace(ndarray, '"', '') 
+        if dtype[0] == 'i':
+            for i in range(0,len(ndarray)):
+                try:
+                    int(ndarray[i])
+                except:
+                    ndarray[i] = '-1'
+        elif dtype[0] == 'f':
+            ndarray = np.char.replace(ndarray, ',', '.')
+            for i in range(0,len(ndarray)):
+                try:
+                    float(ndarray[i])
+                except:
+                    ndarray[i] = '-1'
+        elif dtype == 'U5':
+            ndarray = ndarray.astype(dtype)
+            for i in range(0,len(ndarray)):
+                try:
+                    if int(ndarray[i][0:2]) > 24:
+                        ndarray[i] = '-1'
+                    else:
+                        if int(ndarray[i][2:4]) > 59:
+                            ndarray[i] = f'{ndarray[i][0:2]}'
+                        else:
+                            ndarray[i] = f'{ndarray[i][0:2]}:{ndarray[i][2:4]}'
+                except:
+                    ndarray[i] = '-1'
+        ndarray = ndarray.astype(dtype)
+        return ndarray
+
+    def get_list(self, regions = None):
+        output = None
+        if regions is None:
+            for i in regions_files:
+                if self.regions_cash[i] == None:
+                    self.regions_cash[i] = self.parse_region_data(i)
+            for i in regions_files:
+                if output == None:
+                    output = self.regions_cash[i]
+                else:
+                    for j in range(0,65):
+                        output[1][j] = np.concatenate((output[1][j],self.regions_cash[i][1][j]), axis=0)
+        else:
+            for i in regions:
+                if self.regions_cash[i] == None:
+                    self.regions_cash[i] = self.parse_region_data(i)
+            for i in regions:
+                if output == None:
+                    output = self.regions_cash[i]
+                else:
+                    for j in range(0,65):
+                        output[1][j] = np.concatenate((output[1][j],self.regions_cash[i][1][j]), axis=0)
+        for i in range(0,65):
+            print(f'{i}. <{output[0][i]}> -- <{output[1][i]}> -- "{output[1][i][0].dtype}"')
+        return(output)
 
 if __name__ == "__main__":
     p = DataDownloader()
-    p.download_data()
-    p.parse_region_data("ULK")
+    #p.download_data()
+    p.get_list()
+    
 
 # parse_region_data(self, region)
 # get_list(self, regions = None)
