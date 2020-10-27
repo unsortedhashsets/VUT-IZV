@@ -4,7 +4,10 @@ import os, re, glob, zipfile, requests
 import numpy as np
 from bs4 import BeautifulSoup
 from datetime import datetime
+from datetime import date
+import pickle
 
+FIRST_YEAR = 2016
 
 columns_names = [
     "REGION", "IC", "DRUH POZEMNÍ KOMUNIKACE", "ČÍSLO POZEMNÍ KOMUNIKACE", "den, měsíc, rok",
@@ -91,7 +94,7 @@ class DataDownloader:
         self.url = url
         self.folder = folder
         self.cache_filename = cache_filename
-        self.regions_cash = {
+        self.regions_caсh = {
             "PHA": None,
             "STC": None,
             "JHC": None,
@@ -113,9 +116,19 @@ class DataDownloader:
     """
 
     def download_data(self):
+
+        if not os.path.isdir(self.folder):
+            try:
+                os.makedirs(self.folder)
+            except OSError:
+                print (f"Creation of the directory {self.folder} failed")
+                exit(-1)
+            else:
+                print (f"Successfully created the directory {self.folder}")
+
         if os.listdir(self.folder) :
             print(f"Clean-up {self.folder}")
-            for f in glob.glob(f'{self.folder}/*'):
+            for f in glob.glob(f'{self.folder}/*.zip'):
                 print(f"...Deleting - {self.folder}/{f}")
                 os.remove(f)
         print(f"Processing: {self.url}")
@@ -144,18 +157,26 @@ class DataDownloader:
                     fd.close()
         print(f"Finished with: {self.url}")
 
+
+
     def parse_region_data(self, region):
         file_name = regions_files.get(region)
         df = None
         if file_name == None:
             print(f"ERROR: {region} not found")
-            return None
+            exit(-1)
+
+        if len(glob.glob(f"{self.folder}/*.zip")) != int(datetime.now().year)-FIRST_YEAR+1:
+            if int(datetime.now().month) != 1:
+                print("WARNING: Not enough data archives, need to update")
+                self.download_data()
+
         for zip_file in glob.glob(f"{self.folder}/*.zip"):
             zf = zipfile.ZipFile(zip_file)
             for csv_file in zf.namelist():
                 if csv_file == file_name:
-                    print(zip_file, file_name)
                     if df is None:
+                        print("\nCopying tables:")
                         df = np.genfromtxt(zf.open(csv_file), delimiter=";",
                                                               encoding="ISO-8859-1",
                                                               autostrip=True,
@@ -167,49 +188,48 @@ class DataDownloader:
                                                                             dtype="U",
                                                                             autostrip=True,
                                                                             usecols=np.arange(0,64)), 0)
-                    print(f'2d np.array size: {len(df)}x{len(df[0])}')
+                    print(f'...Table {file_name} copied from {zip_file} with size: {len(df)}x{len(df[0])}')
         columns_data = np.insert(df, 0, region, axis=1).transpose()
-        
-        
-        columns_data[columns_data=='""']='-1' 
-        columns_data[columns_data=='']='-1' 
+
+        print(f'\nParse data for region {region}:')
+        columns_data[columns_data=='""']='-1'
+        columns_data[columns_data=='']='-1'
         
         columns_data = list(columns_data)
 
-        for i in range(0,65):
-            columns_data[i] = self.parse_ndarray(columns_data[i], data_types[i])
-            print(f'{i}. <{columns_names[i]}> -- <{columns_data[i]}> -- "{columns_data[i][0].dtype}"')
-
+        for i, element in enumerate(columns_data):
+            columns_data[i] = self.parse_ndarray(element, data_types[i])
+            print(f'...{i}.\t<{columns_names[i]}> --- <{columns_data[i]}> --- "{columns_data[i][0].dtype}"')
         output = (columns_names, columns_data)
-
         return output
             
     def parse_ndarray(self, ndarray, dtype):
         ndarray = np.char.replace(ndarray, '"', '') 
+
         if dtype[0] == 'i':
-            for i in range(0,len(ndarray)):
+            for i, element in enumerate(ndarray):
                 try:
-                    int(ndarray[i])
+                    int(element)
                 except:
                     ndarray[i] = '-1'
-        elif dtype[0] == 'f':
+        elif dtype == 'f':
             ndarray = np.char.replace(ndarray, ',', '.')
-            for i in range(0,len(ndarray)):
+            for i, element in enumerate(ndarray):
                 try:
-                    float(ndarray[i])
+                    element = float(re.match("(-{0,1}\d+\.{0,1}\d*)", element).group(0))
                 except:
                     ndarray[i] = '-1'
         elif dtype == 'U5':
             ndarray = ndarray.astype(dtype)
-            for i in range(0,len(ndarray)):
+            for i, element in enumerate(ndarray):
                 try:
-                    if int(ndarray[i][0:2]) > 24:
+                    if int(element[0:2]) > 24:
                         ndarray[i] = '-1'
                     else:
-                        if int(ndarray[i][2:4]) > 59:
-                            ndarray[i] = f'{ndarray[i][0:2]}'
+                        if int(element[2:4]) > 59:
+                            ndarray[i] = f'{element[0:2]}'
                         else:
-                            ndarray[i] = f'{ndarray[i][0:2]}:{ndarray[i][2:4]}'
+                            ndarray[i] = f'{element[0:2]}:{element[2:4]}'
                 except:
                     ndarray[i] = '-1'
         ndarray = ndarray.astype(dtype)
@@ -219,33 +239,45 @@ class DataDownloader:
         output = None
         if regions is None:
             for i in regions_files:
-                if self.regions_cash[i] == None:
-                    self.regions_cash[i] = self.parse_region_data(i)
-            for i in regions_files:
+                if self.regions_caсh[i] == None:
+                    if not glob.glob(f"{self.folder}/{self.cache_filename.format(i)}"):
+                        self.regions_caсh[i] = self.parse_region_data(i)
+                        pickle.dump( self.regions_caсh[i], open(f'{self.folder}/{self.cache_filename.format(i)}', "wb" ))
+                    else:
+                        self.regions_caсh[i] = pickle.load(open(f'{self.folder}/{self.cache_filename.format(i)}', "rb" ))
                 if output == None:
-                    output = self.regions_cash[i]
+                    output = self.regions_caсh[i]
                 else:
-                    for j in range(0,65):
-                        output[1][j] = np.concatenate((output[1][j],self.regions_cash[i][1][j]), axis=0)
+                    for j in range(0,len(output[1])):
+                        output[1][j] = np.concatenate((output[1][j],self.regions_caсh[i][1][j]), axis=0)
         else:
-            for i in regions:
-                if self.regions_cash[i] == None:
-                    self.regions_cash[i] = self.parse_region_data(i)
-            for i in regions:
-                if output == None:
-                    output = self.regions_cash[i]
-                else:
-                    for j in range(0,65):
-                        output[1][j] = np.concatenate((output[1][j],self.regions_cash[i][1][j]), axis=0)
-        for i in range(0,65):
-            print(f'{i}. <{output[0][i]}> -- <{output[1][i]}> -- "{output[1][i][0].dtype}"')
+            if all(region in regions_files for region in regions):
+                for i in regions:
+                    if self.regions_caсh[i] == None:
+                        if not glob.glob(f"{self.folder}/{self.cache_filename.format(i)}"):
+                            self.regions_caсh[i] = self.parse_region_data(i)
+                            pickle.dump( self.regions_caсh[i], open(f'{self.folder}/{self.cache_filename.format(i)}', "wb" ))
+                        else:
+                            self.regions_caсh[i] = pickle.load(open(f'{self.folder}/{self.cache_filename.format(i)}', "rb" ))
+
+                    if output == None:
+                        output = self.regions_caсh[i]
+                    else:
+                        for j in range(0,len(output[1])):
+                            output[1][j] = np.concatenate((output[1][j],self.regions_caсh[i][1][j]), axis=0)
+            else:
+                print(f"ERROR: {regions} not found")
+                exit(-1)
+        if regions is None:
+            print('\nDATASET for all regions:')
+        else:
+            print(f'\nDATASET for regions: {regions}:')
+        for i in range(0,len(output[1])):
+            print(f'...{i}.\t<{output[0][i]}> --- <{output[1][i]}> --- "{output[1][i][0].dtype}"')
+        print('DATASET collecting is finished\n')
         return(output)
+
 
 if __name__ == "__main__":
     p = DataDownloader()
-    #p.download_data()
-    p.get_list()
-    
-
-# parse_region_data(self, region)
-# get_list(self, regions = None)
+    p.get_list(['STC','MSK','PAK'])
