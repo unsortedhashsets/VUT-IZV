@@ -27,7 +27,7 @@ regions_colors = {
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process command line arguments.')
 
-    parser.add_argument('-r', '--regions', nargs='*', default=None, help='Sequence of regions: PHA JHC ULK etc..')
+    parser.add_argument('-r', '--regions', nargs='+', default=None, choices=["PHA", "STC", "JHC", "PLK", "ULK", "HKK", "JHM", "MSK", "OLK", "ZLK", "VYS", "PAK","LBK","KVK"], help='Sequence of regions: PHA JHC ULK etc..')
     parser.add_argument('-l', '--fig_location', default=None, type=dir_path, help='Directory to save image')
     parser.add_argument('-n', '--fig_name', default='noname.png', help='Image name with format: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff')
     parser.add_argument('-s', '--show_figure', action="store_true", help='Use command to show figure')
@@ -122,7 +122,10 @@ def plot_stat(data_source, fig_location = None, fig_name ='noname.png', show_fig
 if __name__ == "__main__":
     start_time = time.time()
     parsed_args = parse_arguments()
+
     plot_stat(do.DataDownloader().get_list(parsed_args.regions), 
-              parsed_args.fig_location,
-              parsed_args.fig_name,
-              parsed_args.show_figure)
+                    parsed_args.fig_location,
+                    parsed_args.fig_name,
+                    parsed_args.show_figure)
+
+              
