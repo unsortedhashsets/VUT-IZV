@@ -84,7 +84,6 @@ class DataDownloader:
         tříznakovým kódem (viz tabulka níže) příslušného kraje. Pro jednoduchost
         podporujte pouze formát “pickle” s kompresí gzip.
     """
-
     def __init__(
         self,
         url="https://ehw.fit.vutbr.cz/izv/",
@@ -112,9 +111,8 @@ class DataDownloader:
         }
 
     """
-        funkce stáhne do datové složky ​ folder​ všechny soubory s daty z adresy ​ url​ .
+       gasfdhadfhadfhfda
     """
-
     def download_data(self):
 
         if not os.path.isdir(self.folder):
@@ -131,18 +129,23 @@ class DataDownloader:
             for f in glob.glob(f'{self.folder}/*.zip'):
                 print(f"...Deleting - {self.folder}/{f}")
                 os.remove(f)
+
         print(f"Processing: {self.url}")
         pattern = re.compile(rf'''(datagis-rok-.{{5}}zip)|
                                   (.datagis.{{5}}zip)|
                                   ({datetime.now().month-1}-{datetime.now().year}\.zip)''')
         s = requests.session().get(url=self.url, headers=headers)
-        test_soup = BeautifulSoup(s.content, "html.parser").find_all("a", href=rf'({datetime.now().month}-{datetime.now().year}\.zip)')
+        test_soup = BeautifulSoup(s.content,
+                                 "html.parser").find_all("a",
+                                                         href=rf'({datetime.now().month}-{datetime.now().year}\.zip)')
         if not test_soup:
             print(f"Last update: {datetime.now().month-1}-{datetime.now().year}")
-            pattern = re.compile(rf'(datagis-rok-.{{5}}zip)|(datagis.{{5}}zip)|({datetime.now().month-1}-{datetime.now().year}\.zip)')
+            pattern = re.compile(
+                rf'(datagis-rok-.{{5}}zip)|(datagis.{{5}}zip)|({datetime.now().month-1}-{datetime.now().year}\.zip)')
         else:
             print(f"Last update: {datetime.now().month}-{datetime.now().year}")
-            pattern = re.compile(rf'(datagis-rok-.{{5}}zip)|(datagis.{{5}}zip)|({datetime.now().month}-{datetime.now().year}\.zip)')          
+            pattern = re.compile(
+                rf'(datagis-rok-.{{5}}zip)|(datagis.{{5}}zip)|({datetime.now().month}-{datetime.now().year}\.zip)')          
         soup = BeautifulSoup(s.content, "html.parser").find_all("a", href=pattern)
         for name in soup:
             zip_url = f"{self.url}/{name['href']}"
@@ -157,8 +160,9 @@ class DataDownloader:
                     fd.close()
         print(f"Finished with: {self.url}")
 
-
-
+    """
+       gasfdhadfhadfhfda
+    """
     def parse_region_data(self, region):
         file_name = regions_files.get(region)
         df = None
@@ -202,7 +206,10 @@ class DataDownloader:
             print(f'...{i}.\t<{columns_names[i]}> --- <{columns_data[i]}> --- "{columns_data[i][0].dtype}"')
         output = (columns_names, columns_data)
         return output
-            
+
+    """
+       gasfdhadfhadfhfda
+    """
     def parse_ndarray(self, ndarray, dtype):
         ndarray = np.char.replace(ndarray, '"', '') 
 
@@ -212,6 +219,7 @@ class DataDownloader:
                     int(element)
                 except:
                     ndarray[i] = '-1'
+
         elif dtype == 'f':
             ndarray = np.char.replace(ndarray, ',', '.')
             for i, element in enumerate(ndarray):
@@ -219,6 +227,7 @@ class DataDownloader:
                     element = float(re.match("(-{0,1}\d+\.{0,1}\d*)", element).group(0))
                 except:
                     ndarray[i] = '-1'
+
         elif dtype == 'U5':
             ndarray = ndarray.astype(dtype)
             for i, element in enumerate(ndarray):
@@ -232,9 +241,13 @@ class DataDownloader:
                             ndarray[i] = f'{element[0:2]}:{element[2:4]}'
                 except:
                     ndarray[i] = '-1'
+
         ndarray = ndarray.astype(dtype)
         return ndarray
 
+    """
+       gasfdhadfhadfhfda
+    """
     def get_list(self, regions = None):
         output = None
         if regions is None:
@@ -242,29 +255,35 @@ class DataDownloader:
                 if self.regions_caсh[i] == None:
                     if not glob.glob(f"{self.folder}/{self.cache_filename.format(i)}"):
                         self.regions_caсh[i] = self.parse_region_data(i)
-                        pickle.dump( self.regions_caсh[i], open(f'{self.folder}/{self.cache_filename.format(i)}', "wb" ))
+                        pickle.dump(self.regions_caсh[i],
+                                    open(f'{self.folder}/{self.cache_filename.format(i)}', "wb"))
                     else:
-                        self.regions_caсh[i] = pickle.load(open(f'{self.folder}/{self.cache_filename.format(i)}', "rb" ))
+                        self.regions_caсh[i] = pickle.load(
+                                    open(f'{self.folder}/{self.cache_filename.format(i)}', "rb"))
                 if output == None:
                     output = self.regions_caсh[i]
                 else:
                     for j in range(0,len(output[1])):
-                        output[1][j] = np.concatenate((output[1][j],self.regions_caсh[i][1][j]), axis=0)
+                        output[1][j] = np.concatenate(
+                            (output[1][j],self.regions_caсh[i][1][j]), axis=0)
         else:
             if all(region in regions_files for region in regions):
                 for i in regions:
                     if self.regions_caсh[i] == None:
                         if not glob.glob(f"{self.folder}/{self.cache_filename.format(i)}"):
                             self.regions_caсh[i] = self.parse_region_data(i)
-                            pickle.dump( self.regions_caсh[i], open(f'{self.folder}/{self.cache_filename.format(i)}', "wb" ))
+                            pickle.dump(self.regions_caсh[i],
+                                        open(f'{self.folder}/{self.cache_filename.format(i)}', "wb"))
                         else:
-                            self.regions_caсh[i] = pickle.load(open(f'{self.folder}/{self.cache_filename.format(i)}', "rb" ))
+                            self.regions_caсh[i] = pickle.load(
+                                open(f'{self.folder}/{self.cache_filename.format(i)}', "rb"))
 
                     if output == None:
                         output = self.regions_caсh[i]
                     else:
                         for j in range(0,len(output[1])):
-                            output[1][j] = np.concatenate((output[1][j],self.regions_caсh[i][1][j]), axis=0)
+                            output[1][j] = np.concatenate(
+                                (output[1][j],self.regions_caсh[i][1][j]), axis=0)
             else:
                 print(f"ERROR: {regions} not found")
                 exit(-1)
@@ -277,7 +296,9 @@ class DataDownloader:
         print('DATASET collecting is finished\n')
         return(output)
 
-
+    """
+       gasfdhadfhadfhfda
+    """
 if __name__ == "__main__":
     p = DataDownloader()
     p.get_list(['STC','MSK','PAK'])
