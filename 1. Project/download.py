@@ -1,55 +1,108 @@
 
 
-import os, re, glob, zipfile, requests
-import numpy as np
+import os
+import re
+import glob
+import numpy
+import pickle
+import zipfile
+import requests 
+
 from bs4 import BeautifulSoup
 from datetime import datetime
 from datetime import date
-import pickle
 
+"""
+Start statistics year
+"""
 FIRST_YEAR = 2016
 
-columns_names = [
-    "REGION", "IC", "DRUH POZEMNÍ KOMUNIKACE", "ČÍSLO POZEMNÍ KOMUNIKACE", "den, měsíc, rok",
-    "weekday", "čas", "DRUH NEHODY", "DRUH SRÁŽKY JEDOUCÍCH VOZIDEL", "DRUH PEVNÉ PŘEKÁŽKY",
-    "CHARAKTER NEHODY", "ZAVINĚNÍ NEHODY", "ALKOHOL U VINÍKA NEHODY PŘÍTOMEN", "HLAVNÍ PŘÍČINY NEHODY",
-    "usmrceno osob", "těžce zraněno osob", "lehce zraněno osob", "CELKOVÁ HMOTNÁ ŠKODA", "DRUH POVRCHU VOZOVKY",
-    "STAV POVRCHU VOZOVKY V DOBĚ NEHODY", "STAV KOMUNIKACE", "POVĚTRNOSTNÍ PODMÍNKY V DOBĚ NEHODY",
-    "VIDITELNOST", "ROZHLEDOVÉ POMĚRY", "DĚLENÍ KOMUNIKACE", "SITUOVÁNÍ NEHODY NA KOMUNIKACI",
-    "ŘÍZENÍ PROVOZU V DOBĚ NEHODY", "MÍSTNÍ ÚPRAVA PŘEDNOSTI V JÍZDĚ", "SPECIFICKÁ MÍSTA A OBJEKTY V MÍSTĚ NEHODY",
-    "SMĚROVÉ POMĚRY", "POČET ZÚČASTNĚNÝCH VOZIDEL", "MÍSTO DOPRAVNÍ NEHODY", "DRUH KŘIŽUJÍCÍ KOMUNIKACE", "DRUH VOZIDLA",
-    "VÝROBNÍ ZNAČKA MOTOROVÉHO VOZIDLA", "ROK VÝROBY VOZIDLA", "CHARAKTERISTIKA VOZIDLA", "SMYK", "VOZIDLO PO NEHODĚ",
-    "ÚNIK PROVOZNÍCH, PŘEPRAVOVANÝCH HMOT", "ZPŮSOB VYPROŠTĚNÍ OSOB Z VOZIDLA", "SMĚR JÍZDY NEBO POSTAVENÍ VOZIDLA",
-    "ŠKODA NA VOZIDLE", "KATEGORIE ŘIDIČE", "STAV ŘIDIČE", "VNĚJŠÍ OVLIVNĚNÍ ŘIDIČE", 
-    "a", "b", "souřadnice X", "souřadnice Y", "f", "g", "h", "i", "j", "k", "l", "n", "o", "p", "q", "r", "s", "t", "LOKALITA NEHODY"
-]
-
-data_types = [
-    'U3', 'U12', 'i1', 'i4', 'M', 'i1', 'U5', 'i1', 'i1', 'i1',
-    'i1', 'i1', 'i1', 'i2', 'i1', 'i1', 'i1', 'i4', 'i1', 'i1',
-    'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1',
-    'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1', 'i1',
-    'i1', 'i1', 'i2', 'i1', 'i1', 'i1', 'f', 'f', 'f', 'f', 'f', 'f',
-    'U','U','U','U','U','U','U','U','U','U','U','U','i1'
-]
-
-regions_files = {
-    "PHA": "00.csv",  # nehody na území hl. m. Prahy
-    "STC": "01.csv",  # nehody na území Středočeského kraje
-    "JHC": "02.csv",  # nehody na území Jihočeského kraje
-    "PLK": "03.csv",  # nehody na území Plzeňského kraje
-    "ULK": "04.csv",  # nehody na území Ústeckého kraje
-    "HKK": "05.csv",  # nehody na území Královéhradeckého kraje
-    "JHM": "06.csv",  # nehody na území Jihomoravského kraje
-    "MSK": "07.csv",  # nehody na území Moravskoslezského kraje
-    "OLK": "14.csv",  # nehody na území Olomouckého kraje
-    "ZLK": "15.csv",  # nehody na území Zlínského kraje
-    "VYS": "16.csv",  # nehody na území kraje Vysočina
-    "PAK": "17.csv",  # nehody na území Pardubického kraje
-    "LBK": "18.csv",  # nehody na území Libereckého kraje
-    "KVK": "19.csv",  # nehody na území Karlovarského kraje
+"""
+Columns name and dtype dictionary: {№:(REGION, DTYPE)}
+"""
+columns_names_dtypes = {
+    0:  ("Region","U3"), 
+    1:  ("ID","U12"),
+    2:  ("Communication type","i1"),
+    3:  ("Communication number","i4"),
+    4:  ("YYYY-MM-DD","M"),
+    5:  ("Weekday","i1"),
+    6:  ("Time","U5"),
+    7:  ("Accident type","i1"),
+    8:  ("Moving vehicles crash type","i1"),
+    9:  ("Fixed obstacle type","i1"),
+    10: ("Accident specific","i1"),
+    11: ("Accident culprit","i1"),
+    12: ("Culprit alcohol level","i1"),
+    13: ("Accident main causes","i2"),
+    14: ("Persons killed","i1"),
+    15: ("Persons seriously  injured","i1"),
+    16: ("Persons slightly injured","i1"),
+    17: ("Total material damage","i4"),
+    18: ("Road surface type","i1"),
+    19: ("Road surface condition","i1"),
+    20: ("Comunication condition","i1"),
+    21: ("Wind condition","i1"),
+    22: ("Visibility","i1"),
+    23: ("Visional condition","i1"),
+    24: ("Communication division","i1"),
+    25: ("Accident location","i1"),
+    26: ("Accident driving management","i1"),
+    27: ("Driving priotities adjustment","i1"),
+    28: ("Accident specific objects","i1"),
+    29: ("Directions conditions","i1"),
+    30: ("Number of vehicles","i1"),
+    31: ("Accident city","i1"),
+    32: ("Cross type","i1"),
+    33: ("Vehicle type","i1"),
+    34: ("Vehicle mark","i1"),
+    35: ("Manufacture year","i1"),
+    36: ("Vehicle characteristic","i1"),
+    37: ("Skid","i1"),
+    38: ("Vehicle after accident","i1"),
+    39: ("Materials transported","i1"),
+    40: ("Method of persons reliasing","i1"),
+    41: ("Direction of driving","i2"),
+    42: ("Vehicle damage","i2"),
+    43: ("Driver category","i1"),
+    44: ("Driver state","i1"),
+    45: ("External influence","i1"), 
+    46: ("a","f"),
+    47: ("b","f"),
+    48: ("GPS:X","f"),
+    49: ("GPS:Y","f"),
+    50: ("f","f"), 
+    51: ("g","f"), 
+    52: ("h","U"), 53: ("i","U"), 54: ("j","U"), 
+    55: ("k","U"), 56: ("l","U"), 57: ("n","U"), 
+    58: ("o","U"), 59: ("p","U"), 60: ("q","U"),
+    61: ("r","U"), 62: ("s","U"), 63: ("t","U"),
+    64: ("Accident area","i1")
 }
 
+"""
+Region's csv filenames: {REGION, FILE.csv)}
+"""
+regions_files = {
+    "PHA": "00.csv",
+    "STC": "01.csv",
+    "JHC": "02.csv",
+    "PLK": "03.csv",
+    "ULK": "04.csv",
+    "HKK": "05.csv",
+    "JHM": "06.csv",
+    "MSK": "07.csv",
+    "OLK": "14.csv",
+    "ZLK": "15.csv",
+    "VYS": "16.csv",
+    "PAK": "17.csv",
+    "LBK": "18.csv",
+    "KVK": "19.csv"
+}
+
+"""
+Header to avoid bot blocker
+"""
 headers = {
     "accept": "*/*",
     "accept-encoding": "gzip, deflate, br",
@@ -63,37 +116,74 @@ headers = {
     "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36",
 }
 
-
-"""
-    Vytvořte soubor ​ download.py​ , který bude obsahovat třídu ​ DataDownloader​ . Tato třída
-    bude implementovat následující metody (můžete samozřejmě přidat další vlastní, případně
-    můžete přidat další parametry do funkcí, pokud to uznáte za vhodné):
-"""
 class DataDownloader:
+    """
+    A class used to:
+        - download statistics archives;
+        - parse data in these archives;
+        - record parsed statistics objects - tuple(list[str], list[np.ndarray]);
+        - saving parsed statistics objects cache;
+    
+    Attributes
+    ----------
+    url : str
+        indicates from which address the data is being read.
+        The default value is 'https://ehw.fit.vutbr.cz/izv/'.
+    folder : str
+        If “folder” is set, the data will be read/saved from/to that folder.
+        If the folder does not exist, creates it.
+        The default value is 'data'.
+    cache_filename : str
+        A name of the file in the specified folder,
+        where the processed data from the get_list method will be stored
+        and from where the data will be taken for further processing.
+    regions_cache : dictionary - {REGION:statistics objects}
+        Dictionary to store processed data in program
 
+    Methods
+    -------
+    download_data():
+        Creates folder, downloads data archives from web
+    parse_region_data(region):
+        Process data arcives, generate data objects for defined region
+    parse_i(element):
+        Parse element value like Integer object
+    parse_f(element):
+        Parse element value like float object
+    parse_u5(element):
+        Parse element value like time column with Unicode object
+    parse_u_m(element):
+        Parse element value like unicode and data objects
+    get_list(regions=None):
+        Check program cache and cache files for defined regions.
+        Leads the proccess of datagathering
     """
-    inicializátor - obsahuje volitelné parametry:
-        ○ url​ - ukazuje, z jaké adresy se data načítají. Defaultně bude nastavený na
-        výše uvedenou URL.
-        ○ folder​ - říká, kam se mají dočasná data ukládat. Tato složka nemusí na
-        začátku existovat!
-        ○ cache_filename​ - jméno souboru ve specifikované složce, které říká, kam
-        se soubor s již zpracovanými daty z funkce ​ get_list​ bude ukládat a odkud
-        se budou data brát pro další zpracování a nebylo nutné neustále stahovat
-        data přímo z webu. Složené závorky (formátovací řetězec) bude nahrazený
-        tříznakovým kódem (viz tabulka níže) příslušného kraje. Pro jednoduchost
-        podporujte pouze formát “pickle” s kompresí gzip.
-    """
+
     def __init__(
         self,
         url="https://ehw.fit.vutbr.cz/izv/",
         folder="data",
         cache_filename="data_{}.pkl.gz",
     ):
+        """
+        Parameters
+        ----------
+        url : str
+            indicates from which address the data is being read.
+            The default value is 'https://ehw.fit.vutbr.cz/izv/'.
+        folder : str
+            If “folder” is set, the data will be read/saved from/to that folder.
+            If the folder does not exist, creates it.
+            The default value is 'data'.
+        cache_filename : str
+            A name of the file in the specified folder,
+            where the processed data from the get_list method will be stored
+            and from where the data will be taken for further processing.
+        """
         self.url = url
         self.folder = folder
         self.cache_filename = cache_filename
-        self.regions_caсh = {
+        self.regions_cache = {
             "PHA": None,
             "STC": None,
             "JHC": None,
@@ -110,26 +200,34 @@ class DataDownloader:
             "KVK": None,
         }
 
-    """
-       gasfdhadfhadfhfda
-    """
-    def download_data(self):
 
+    def download_data(self):
+        """
+        Creates folder, downloads data archives from web
+
+        Raises
+        ------
+            OSError
+                If it is impossible to create folder
+        """
+
+        # Try to create folder.
         if not os.path.isdir(self.folder):
             try:
                 os.makedirs(self.folder)
             except OSError:
-                print (f"Creation of the directory {self.folder} failed")
-                exit(-1)
+                raise OSError(f"Creation of the directory {self.folder} failed")
             else:
                 print (f"Successfully created the directory {self.folder}")
 
-        if os.listdir(self.folder) :
+        # Prepare folder for new zips.
+        if os.listdir(self.folder):
             print(f"Clean-up {self.folder}")
             for f in glob.glob(f'{self.folder}/*.zip'):
                 print(f"...Deleting - {self.folder}/{f}")
                 os.remove(f)
 
+        # Process url.
         print(f"Processing: {self.url}")
         pattern = re.compile(rf'''(datagis-rok-.{{5}}zip)|
                                   (.datagis.{{5}}zip)|
@@ -138,6 +236,8 @@ class DataDownloader:
         test_soup = BeautifulSoup(s.content,
                                  "html.parser").find_all("a",
                                                          href=rf'({datetime.now().month}-{datetime.now().year}\.zip)')
+        
+        # Detect last needed file for example september or october of the current year.
         if not test_soup:
             print(f"Last update: {datetime.now().month-1}-{datetime.now().year}")
             pattern = re.compile(
@@ -147,6 +247,8 @@ class DataDownloader:
             pattern = re.compile(
                 rf'(datagis-rok-.{{5}}zip)|(datagis.{{5}}zip)|({datetime.now().month}-{datetime.now().year}\.zip)')          
         soup = BeautifulSoup(s.content, "html.parser").find_all("a", href=pattern)
+        
+        # For each detected archive -> download it.
         for name in soup:
             zip_url = f"{self.url}/{name['href']}"
             file_name = f"{self.folder}/{zip_url.split('/')[-1]}"
@@ -160,133 +262,244 @@ class DataDownloader:
                     fd.close()
         print(f"Finished with: {self.url}")
 
-    """
-       gasfdhadfhadfhfda
-    """
+
     def parse_region_data(self, region):
+        """
+        For defined region:
+            - Reads raw data from csv files.
+            - Process raw data.
+
+        Parameters
+        ------
+        region: 
+            Region what data need to proceed.
+
+        Returns
+        -------
+        data object : tuple(list[str], list[np.ndarray])
+            Processed data object for defined region.
+
+        Raises
+        ------
+        OSError
+            If it is impossible to create folder.
+        """
+
         file_name = regions_files.get(region)
         df = None
-        if file_name == None:
-            print(f"ERROR: {region} not found")
-            exit(-1)
 
+        # Check if provided region is supported
+        if file_name == None:
+            raise NotImplementedError(f"ERROR: {region} not found")
+
+        # Check the number of available archives in 2020 - 5 in 2021 - 6 and etc.   
         if len(glob.glob(f"{self.folder}/*.zip")) != int(datetime.now().year)-FIRST_YEAR+1:
             if int(datetime.now().month) != 1:
                 print("WARNING: Not enough data archives, need to update")
                 self.download_data()
 
+        # prepare data converter dictionary for (numpy.genfromtxt)
+        convert = dict()
+        for i in range(0,64):
+            if columns_names_dtypes[i+1][1][0] == 'i':
+                convert[i] = lambda x: self.parse_i(x) or '-1'
+            elif columns_names_dtypes[i+1][1][0] == 'f':
+                convert[i] = lambda x: self.parse_f(x) or '-1'
+            elif columns_names_dtypes[i+1][1] == 'U5':
+                convert[i] = lambda x: self.parse_u5(x) or '-1'
+            else:
+                convert[i] = lambda x: self.parse_u_m(x) or '-1'
+
+        # Read csv files from zips
         for zip_file in glob.glob(f"{self.folder}/*.zip"):
             zf = zipfile.ZipFile(zip_file)
             for csv_file in zf.namelist():
                 if csv_file == file_name:
                     if df is None:
-                        print("\nCopying tables:")
-                        df = np.genfromtxt(zf.open(csv_file), delimiter=";",
+                        print("\nParse tables:")
+                        df = numpy.genfromtxt(zf.open(csv_file), delimiter=";",
                                                               encoding="ISO-8859-1",
                                                               autostrip=True,
-                                                              dtype="unicode",
-                                                              usecols=np.arange(0,64))
+                                                              converters=convert,
+                                                              dtype='U',
+                                                              unpack=True,
+                                                              usecols=numpy.arange(0,64))
                     else:
-                        df = np.append(df, np.genfromtxt(zf.open(csv_file), delimiter=";", 
+                        df = numpy.concatenate((df, numpy.genfromtxt(zf.open(csv_file), delimiter=";", 
                                                                             encoding="ISO-8859-1",
-                                                                            dtype="U",
+                                                                            dtype='U',
+                                                                            converters=convert,
                                                                             autostrip=True,
-                                                                            usecols=np.arange(0,64)), 0)
-                    print(f'...Table {file_name} copied from {zip_file} with size: {len(df)}x{len(df[0])}')
-        columns_data = np.insert(df, 0, region, axis=1).transpose()
-
-        print(f'\nParse data for region {region}:')
-        columns_data[columns_data=='""']='-1'
-        columns_data[columns_data=='']='-1'
+                                                                            unpack=True,
+                                                                            usecols=numpy.arange(0,64))), axis=1)
+                    print(f'...Parse table {file_name} ({region}) from {zip_file} with size rows/columns: {len(df)}/{len(df[0])}')
         
+        # Add first row with region name
+        columns_data = numpy.insert(df, 0, region, axis=0)
+
+        # Set correct dtypes
+        print(f'\nSet dtypes:')
         columns_data = list(columns_data)
+        for i in range(1, len(columns_data)):
+            columns_data[i] = columns_data[i].astype(columns_names_dtypes[i][1])
+            print(f'...{i}.\t{columns_names_dtypes[i][0]} --- {columns_data[i]} --- "{columns_data[i].dtype}"')
+            
+        return ([element[0] for element in columns_names_dtypes.values()], columns_data)
 
-        for i, element in enumerate(columns_data):
-            columns_data[i] = self.parse_ndarray(element, data_types[i])
-            print(f'...{i}.\t<{columns_names[i]}> --- <{columns_data[i]}> --- "{columns_data[i][0].dtype}"')
-        output = (columns_names, columns_data)
-        return output
 
-    """
-       gasfdhadfhadfhfda
-    """
-    def parse_ndarray(self, ndarray, dtype):
-        ndarray = np.char.replace(ndarray, '"', '') 
+    def parse_i(self, element):
+        """
+        Parse provided element like intiger value
+        (used like converter function for numpy.genfromtxt)
 
-        if dtype[0] == 'i':
-            for i, element in enumerate(ndarray):
-                try:
-                    int(element)
-                except:
-                    ndarray[i] = '-1'
+        Parameters
+        ------
+        element : str  
+            One cell from csv file.
 
-        elif dtype == 'f':
-            ndarray = np.char.replace(ndarray, ',', '.')
-            for i, element in enumerate(ndarray):
-                try:
-                    element = float(re.match("(-{0,1}\d+\.{0,1}\d*)", element).group(0))
-                except:
-                    ndarray[i] = '-1'
+        Returns
+        -------
+        element : str
+            Cleared element if data passed parse process otherwise '-1'
+        """
+        try:
+            int(element.replace('"', ''))
+        except:
+            return '-1'
+        return element.replace('"', '')
 
-        elif dtype == 'U5':
-            ndarray = ndarray.astype(dtype)
-            for i, element in enumerate(ndarray):
-                try:
-                    if int(element[0:2]) > 24:
-                        ndarray[i] = '-1'
-                    else:
-                        if int(element[2:4]) > 59:
-                            ndarray[i] = f'{element[0:2]}'
-                        else:
-                            ndarray[i] = f'{element[0:2]}:{element[2:4]}'
-                except:
-                    ndarray[i] = '-1'
+    def parse_f(self, element):
+        """
+        Parse provided element like float value
+        (used like converter function for numpy.genfromtxt)
 
-        ndarray = ndarray.astype(dtype)
-        return ndarray
+        Parameters
+        ------
+        element : str  
+            One cell from csv file.
 
-    """
-       gasfdhadfhadfhfda
-    """
+        Returns
+        -------
+        element : str
+            Cleared element if data passed parse process otherwise '-1'
+        """
+        try:
+            float(element.replace('"', '').replace(',', '.'))
+        except:
+            return '-1'
+        return element.replace('"', '').replace(',', '.')
+
+    def parse_u5(self, element):
+        """
+        Parse provided element like time value (unicode)
+        (used like converter function for numpy.genfromtxt)
+
+        Parameters
+        ------
+        element : str  
+            One cell from csv file.
+
+        Returns
+        -------
+        element : str
+            Cleared element if data passed parse process otherwise '-1'
+        """
+        try:
+            if int(element[1:3]) > 24:
+                element = '-1'
+            else:
+                if int(element[3:5]) > 59:
+                    element = element[1:3]
+                else:
+                    element = f'{element[1:3]}:{element[3:5]}'
+        except:
+            return '-1'
+        return element
+
+    def parse_u_m(self, element):
+        """
+        Parse provided element like unicode value
+        (used like converter function for numpy.genfromtxt)
+
+        Parameters
+        ------
+        element : str  
+            One cell from csv file.
+
+        Returns
+        -------
+        element : str
+            Cleared element
+        """
+        return element.replace('"', '')
+
+
     def get_list(self, regions = None):
+        """
+        Check program cache and cache files for defined regions.
+        Leads the proccess of datagathering
+
+        Parameters
+        ------
+        regions : list  
+            list of regions to generate data object
+
+        Returns
+        -------
+        data object : tuple(list[str], list[np.ndarray])
+            Processed data object for defined regions.
+        """
         output = None
+
+        # If we need to process all regions
         if regions is None:
             for i in regions_files:
-                if self.regions_caсh[i] == None:
+                # Check program cache 
+                if self.regions_cache[i] == None:
+                    # Check cache file
                     if not glob.glob(f"{self.folder}/{self.cache_filename.format(i)}"):
-                        self.regions_caсh[i] = self.parse_region_data(i)
-                        pickle.dump(self.regions_caсh[i],
+                        # Create program and file cache
+                        self.regions_cache[i] = self.parse_region_data(i)
+                        pickle.dump(self.regions_cache[i],
                                     open(f'{self.folder}/{self.cache_filename.format(i)}', "wb"))
                     else:
-                        self.regions_caсh[i] = pickle.load(
+                        # Save file cache to program cache
+                        self.regions_cache[i] = pickle.load(
                                     open(f'{self.folder}/{self.cache_filename.format(i)}', "rb"))
+                # Concentrate output for all regions
                 if output == None:
-                    output = self.regions_caсh[i]
+                    output = self.regions_cache[i]
                 else:
                     for j in range(0,len(output[1])):
-                        output[1][j] = np.concatenate(
-                            (output[1][j],self.regions_caсh[i][1][j]), axis=0)
+                        output[1][j] = numpy.concatenate(
+                            (output[1][j],self.regions_cache[i][1][j]), axis=0)
+        # If we need to process specific regions
         else:
             if all(region in regions_files for region in regions):
                 for i in regions:
-                    if self.regions_caсh[i] == None:
+                    # Check program cache 
+                    if self.regions_cache[i] == None:
+                        # Check cache file
                         if not glob.glob(f"{self.folder}/{self.cache_filename.format(i)}"):
-                            self.regions_caсh[i] = self.parse_region_data(i)
-                            pickle.dump(self.regions_caсh[i],
+                            # Create program and file cache
+                            self.regions_cache[i] = self.parse_region_data(i)
+                            pickle.dump(self.regions_cache[i],
                                         open(f'{self.folder}/{self.cache_filename.format(i)}', "wb"))
                         else:
-                            self.regions_caсh[i] = pickle.load(
+                            # Save file cache to program cache
+                            self.regions_cache[i] = pickle.load(
                                 open(f'{self.folder}/{self.cache_filename.format(i)}', "rb"))
-
+                    # Concentrate output for all regions
                     if output == None:
-                        output = self.regions_caсh[i]
+                        output = self.regions_cache[i]
                     else:
                         for j in range(0,len(output[1])):
-                            output[1][j] = np.concatenate(
-                                (output[1][j],self.regions_caсh[i][1][j]), axis=0)
+                            output[1][j] = numpy.concatenate(
+                                (output[1][j],self.regions_cache[i][1][j]), axis=0)
             else:
-                print(f"ERROR: {regions} not found")
-                exit(-1)
+                raise NotImplementedError(f"ERROR: {regions} not found")
+
+        # Print logs and return output
         if regions is None:
             print('\nDATASET for all regions:')
         else:
@@ -296,9 +509,12 @@ class DataDownloader:
         print('DATASET collecting is finished\n')
         return(output)
 
-    """
-       gasfdhadfhadfhfda
-    """
+
 if __name__ == "__main__":
+    """
+    Main:
+        main for test issues with predefined regions:
+            ['STC','MSK','PAK']
+    """
     p = DataDownloader()
     p.get_list(['STC','MSK','PAK'])
