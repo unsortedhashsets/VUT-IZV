@@ -1,4 +1,10 @@
-
+"""
+| Project Implementation for IZV 2020/2021
+| Script download.py
+| Date: 30.10.2020
+| Author: Mikhail Abramov
+| xabram00@stud.fit.vutbr.cz
+"""
 
 import os
 import re
