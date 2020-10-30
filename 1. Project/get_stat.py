@@ -60,10 +60,6 @@ def parse_arguments():
                         default = None,
                         type = dir_path,
                         help = 'Directory to save image')
-    parser.add_argument('-n',
-                        '--fig_name',
-                        default = 'noname.png',
-                        help = 'Image name with format: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff')
     parser.add_argument('-s',
                         '--show_figure',
                         action = "store_true",
@@ -86,19 +82,19 @@ def dir_path(path):
         A path to store generated figure
     """
 
-    if os.path.isdir(path):
-        return path
-    else:
-        try:
-            os.makedirs(path)
-        except OSError:
-            print (f"Creation of the directory {path} failed")
-            exit(-1)
-        else:
-            print (f"Successfully created the directory {path}")
+    try:
+        head_tail = os.path.split(path)
+        if os.path.isdir(head_tail[0]):
             return path
+        else:
+            os.makedirs(head_tail[0])
+    except OSError:
+        print (f"Creation of the directory {head_tail[0]} failed")
+        exit(-1)
+    else:
+        print (f"Successfully created the directory {head_tail[0]}")
+        return path
             
-
 
 def round1000(x):
     """
@@ -123,7 +119,6 @@ def round1000(x):
 
 def plot_stat(data_source,
               fig_location = None,
-              fig_name ='noname.png',
               show_figure = False):
     """
     Create plot with statistis of accidents on the roads by year and region
@@ -136,9 +131,6 @@ def plot_stat(data_source,
         If “fig_location” is set, the image will be saved in the given address.
         If the folder where the image is to be saved does not exist, creates it.
         The default value is 'None'.
-    fig_name : str
-        An additional parameter for defining the name of the figure,
-        The default value is 'noname.png'.
     show_figure : Boolean
         If the parameter is 'True', the graph will be displayed in the window
         The default value is 'False'.
@@ -213,8 +205,8 @@ def plot_stat(data_source,
     # Save figure
     if fig_location:
         try:
-            plt.savefig(f'{fig_location}/{fig_name}', bbox_inches='tight')
-            print (f"Successfully saved the figure {fig_location}/{fig_name}")
+            plt.savefig(f'{fig_location}', bbox_inches='tight')
+            print (f"Successfully saved the figure {fig_location}")
         except ValueError:
             print(f"ERROR: wrong image dtype, supported: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff")
             exit(-1)
@@ -232,5 +224,4 @@ if __name__ == "__main__":
     parsed_args = parse_arguments()
     plot_stat(DataDownloader().get_list(parsed_args.regions), 
               parsed_args.fig_location,
-              parsed_args.fig_name,
               parsed_args.show_figure)

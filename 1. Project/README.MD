@@ -22,23 +22,23 @@ DATASET for regions: ['STC', 'MSK', 'PAK']:
 To show figure with all regions and save it into the `data/figures/` with name and format `test1.png`
 
 ```bash
-python3 get_stat.py --show_figure --fig_location data/figures/ --fig_name test1.png
+python3 get_stat.py --show_figure --fig_location data/figures/test1.png
 ```
 
 or
 
 ```bash
-python3 get_stat.py -s -l data/figures/ -n test1.png
+python3 get_stat.py -s -l data/figures/test2.png
 ```
 
 To show figure with specific regions and save it into the `data/figures/` with name and format `test2.png`
 
 ```bash
-python3 get_stat.py --region PHA KVK JHM --show_figure --fig_location data/figures/ --fig_name test2.png
+python3 get_stat.py --region PHA KVK JHM --show_figure --fig_location data/figures/test3.png
 ```
 
 or
 
 ```bash
-python3 get_stat.py -r PHA KVK JHM  -s -l data/figures/ -n test2.png
+python3 get_stat.py -r PHA KVK JHM  -s -l data/figures/test4.png
 ```
