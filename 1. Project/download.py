@@ -312,9 +312,9 @@ class DataDownloader:
             elif columns_names_dtypes[i+1][1][0] == 'f':
                 convert[i] = lambda x: self.parse_f(x) or '-1'
             elif columns_names_dtypes[i+1][1] == 'U5':
-                convert[i] = lambda x: self.parse_u5(x) or '-1'
+                convert[i] = lambda x: self.parse_u5(x)
             else:
-                convert[i] = lambda x: self.parse_u_m(x) or '-1'
+                convert[i] = lambda x: self.parse_u_m(x)
 
         # Read csv files from zips
         for zip_file in glob.glob(f"{self.folder}/*.zip"):
@@ -323,21 +323,23 @@ class DataDownloader:
                 if csv_file == file_name:
                     if df is None:
                         print("\nParse tables:")
-                        df = numpy.genfromtxt(zf.open(csv_file), delimiter=";",
-                                                              encoding="ISO-8859-1",
-                                                              autostrip=True,
-                                                              converters=convert,
-                                                              dtype='U',
-                                                              unpack=True,
-                                                              usecols=numpy.arange(0,64))
+                        df = numpy.genfromtxt(zf.open(csv_file),
+                                              delimiter=";",
+                                              encoding="cp1250",
+                                              converters=convert,
+                                              dtype='U',
+                                              unpack=True,
+                                              usecols=numpy.arange(0,64))
                     else:
-                        df = numpy.concatenate((df, numpy.genfromtxt(zf.open(csv_file), delimiter=";", 
-                                                                            encoding="ISO-8859-1",
-                                                                            dtype='U',
-                                                                            converters=convert,
-                                                                            autostrip=True,
-                                                                            unpack=True,
-                                                                            usecols=numpy.arange(0,64))), axis=1)
+                        df = numpy.concatenate((df,
+                                               numpy.genfromtxt(zf.open(csv_file),
+                                                                delimiter=";", 
+                                                                encoding="cp1250",
+                                                                dtype='U',
+                                                                converters=convert,
+                                                                unpack=True,
+                                                                usecols=numpy.arange(0,64))),
+                                               axis=1)
                     print(f'...Parse table {file_name} ({region}) from {zip_file} with size rows/columns: {len(df)}/{len(df[0])}')
         
         # Add first row with region name
@@ -369,10 +371,12 @@ class DataDownloader:
             Cleared element if data passed parse process otherwise '-1'
         """
         try:
-            int(element.replace('"', ''))
+            element = element.replace('"', '')
+            int(element)
+            return element
         except:
             return '-1'
-        return element.replace('"', '')
+        
 
     def parse_f(self, element):
         """
@@ -390,10 +394,12 @@ class DataDownloader:
             Cleared element if data passed parse process otherwise '-1'
         """
         try:
-            float(element.replace('"', '').replace(',', '.'))
+            element = element.replace('"', '').replace(',', '.')
+            float(element)
+            return element
         except:
             return '-1'
-        return element.replace('"', '').replace(',', '.')
+
 
     def parse_u5(self, element):
         """
@@ -412,15 +418,16 @@ class DataDownloader:
         """
         try:
             if int(element[1:3]) > 24:
-                element = '-1'
+                element = ''
             else:
                 if int(element[3:5]) > 59:
                     element = element[1:3]
                 else:
                     element = f'{element[1:3]}:{element[3:5]}'
         except:
-            return '-1'
+            return ''
         return element
+
 
     def parse_u_m(self, element):
         """
