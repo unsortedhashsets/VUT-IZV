@@ -522,5 +522,4 @@ if __name__ == "__main__":
         main for test issues with predefined regions:
             ['STC','MSK','PAK']
     """
-    p = DataDownloader()
-    p.get_list(['STC','MSK','PAK'])
+    DataDownloader().get_list(['STC','MSK','PAK'])
