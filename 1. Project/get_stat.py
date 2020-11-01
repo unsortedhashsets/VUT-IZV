@@ -62,8 +62,22 @@ def parse_arguments():
                         help = 'Directory to save image')
     parser.add_argument('-s',
                         '--show_figure',
+                        default = False,
                         action = "store_true",
                         help = 'Use command to show figure')
+    parser.add_argument('-f',
+                        '--folder',
+                        default = "data",
+                        help = 'Folder to download and store data')
+    parser.add_argument('-u',
+                        '--url',
+                        default = "https://ehw.fit.vutbr.cz/izv/",
+                        help = 'URL to download data')
+    parser.add_argument('-c',
+                        '--cache_filename',
+                        default = "data_{}.pkl.gz",
+                        help = 'Cache files name')
+
     return parser.parse_args()
 
 
@@ -81,7 +95,7 @@ def dir_path(path):
     path : str
         A path to store generated figure
     """
-
+    
     try:
         head_tail = os.path.split(path)
         if os.path.isdir(head_tail[0]):
@@ -221,7 +235,12 @@ if __name__ == "__main__":
     """
     Main
     """
+    
     parsed_args = parse_arguments()
-    plot_stat(DataDownloader().get_list(parsed_args.regions), 
+
+    plot_stat(DataDownloader(parsed_args.url,
+                             parsed_args.folder,
+                             parsed_args.cache_filename, 
+                            ).get_list(parsed_args.regions), 
               parsed_args.fig_location,
               parsed_args.show_figure)

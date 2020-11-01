@@ -242,16 +242,16 @@ class DataDownloader:
         test_soup = BeautifulSoup(s.content,
                                  "html.parser").find_all("a",
                                                          href=rf'({datetime.now().month}-{datetime.now().year}\.zip)')
-        
+
         # Detect last needed file for example september or october of the current year.
         if not test_soup:
+            print(f"Last update: {datetime.now().month-2}-{datetime.now().year}")
+            pattern = re.compile(
+                rf'(datagis-rok-.{{5}}zip)|(datagis.{{5}}zip)|({datetime.now().month-2}-{datetime.now().year}\.zip)')
+        else:
             print(f"Last update: {datetime.now().month-1}-{datetime.now().year}")
             pattern = re.compile(
-                rf'(datagis-rok-.{{5}}zip)|(datagis.{{5}}zip)|({datetime.now().month-1}-{datetime.now().year}\.zip)')
-        else:
-            print(f"Last update: {datetime.now().month}-{datetime.now().year}")
-            pattern = re.compile(
-                rf'(datagis-rok-.{{5}}zip)|(datagis.{{5}}zip)|({datetime.now().month}-{datetime.now().year}\.zip)')          
+                rf'(datagis-rok-.{{5}}zip)|(datagis.{{5}}zip)|({datetime.now().month-1}-{datetime.now().year}\.zip)')          
         soup = BeautifulSoup(s.content, "html.parser").find_all("a", href=pattern)
         
         # For each detected archive -> download it.
@@ -327,7 +327,7 @@ class DataDownloader:
                                               delimiter=";",
                                               encoding="cp1250",
                                               converters=convert,
-                                              dtype='U',
+                                              dtype='<U22',
                                               unpack=True,
                                               usecols=numpy.arange(0,64))
                     else:
@@ -335,7 +335,7 @@ class DataDownloader:
                                                numpy.genfromtxt(zf.open(csv_file),
                                                                 delimiter=";", 
                                                                 encoding="cp1250",
-                                                                dtype='U',
+                                                                dtype='<U22',
                                                                 converters=convert,
                                                                 unpack=True,
                                                                 usecols=numpy.arange(0,64))),
