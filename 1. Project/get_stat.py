@@ -35,6 +35,14 @@ regions_colors = {
     "KVK": "xkcd:sienna",
 }
 
+"""
+Available figure formats
+"""
+formats = ['eps', 'jpeg', 'jpg',
+           'pdf', 'pgf',  'png',
+           'ps',  'raw',  'rgba',
+           'svg', 'svgz', 'tif', 
+           'tiff']
 
 def parse_arguments():
     """
@@ -98,12 +106,20 @@ def dir_path(path):
     
     try:
         head_tail = os.path.split(path)
+        if not head_tail[1]:
+            raise ValueError
+        else: 
+            if head_tail[1].split('.')[1] not in formats:
+                raise ValueError
         if os.path.isdir(head_tail[0]):
             return path
         else:
             os.makedirs(head_tail[0])
     except OSError:
-        print (f"Creation of the directory {head_tail[0]} failed")
+        print(f"Creation of the directory {head_tail[0]} failed")
+        exit(-1)
+    except (ValueError, IndexError):
+        print(f"ERROR: please define image name with types: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff")
         exit(-1)
     else:
         print (f"Successfully created the directory {head_tail[0]}")
@@ -222,8 +238,7 @@ def plot_stat(data_source,
             plt.savefig(f'{fig_location}', bbox_inches='tight')
             print (f"Successfully saved the figure {fig_location}")
         except ValueError:
-            print(f"ERROR: wrong image dtype, supported: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff")
-            exit(-1)
+            raise ValueError(f"ERROR: wrong image dtype, supported: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff")
 
     # Show figure
     if show_figure:
