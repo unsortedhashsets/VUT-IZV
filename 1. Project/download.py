@@ -241,7 +241,7 @@ class DataDownloader:
         s = requests.session().get(url=self.url, headers=headers)
         test_soup = BeautifulSoup(s.content,
                                  "html.parser").find_all("a",
-                                                         href=rf'({datetime.now().month}-{datetime.now().year}\.zip)')
+                                                         href=rf'({datetime.now().month-1}-{datetime.now().year}\.zip)')
 
         # Detect last needed file for example september or october of the current year.
         if not test_soup:
@@ -311,7 +311,7 @@ class DataDownloader:
                 convert[i] = lambda x: self.parse_i(x) or '-1'
             elif columns_names_dtypes[i+1][1][0] == 'f':
                 convert[i] = lambda x: self.parse_f(x) or '-1'
-            elif columns_names_dtypes[i+1][1] == 'U5':
+            elif columns_names_dtypes[i+1][1] == '=U5':
                 convert[i] = lambda x: self.parse_u5(x)
             else:
                 convert[i] = lambda x: self.parse_u_m(x)
@@ -327,7 +327,7 @@ class DataDownloader:
                                               delimiter=";",
                                               encoding="cp1250",
                                               converters=convert,
-                                              dtype='<U22',
+                                              dtype='=U22',
                                               unpack=True,
                                               usecols=numpy.arange(0,64))
                     else:
@@ -335,7 +335,7 @@ class DataDownloader:
                                                numpy.genfromtxt(zf.open(csv_file),
                                                                 delimiter=";", 
                                                                 encoding="cp1250",
-                                                                dtype='<U22',
+                                                                dtype='=U22',
                                                                 converters=convert,
                                                                 unpack=True,
                                                                 usecols=numpy.arange(0,64))),
