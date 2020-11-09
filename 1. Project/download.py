@@ -8,6 +8,7 @@
 
 import os
 import re
+import gzip
 import glob
 import numpy
 import pickle
@@ -28,12 +29,12 @@ Columns name and dtype dictionary: {№:(REGION, DTYPE)}
 """
 columns_names_dtypes = {
     0:  ("Region","U3"), 
-    1:  ("ID","U12"),
+    1:  ("ID","=U12"),
     2:  ("Communication type","i1"),
     3:  ("Communication number","i4"),
-    4:  ("YYYY-MM-DD","M"),
+    4:  ("YYYY-MM-DD","datetime64[D]"),
     5:  ("Weekday","i1"),
-    6:  ("Time","U5"),
+    6:  ("Time","=U5"),
     7:  ("Accident type","i1"),
     8:  ("Moving vehicles crash type","i1"),
     9:  ("Fixed obstacle type","i1"),
@@ -79,10 +80,10 @@ columns_names_dtypes = {
     49: ("GPS:Y","f"),
     50: ("f","f"), 
     51: ("g","f"), 
-    52: ("h","U"), 53: ("i","U"), 54: ("j","U"), 
-    55: ("k","U"), 56: ("l","U"), 57: ("n","U"), 
-    58: ("o","U"), 59: ("p","U"), 60: ("q","U"),
-    61: ("r","U"), 62: ("s","U"), 63: ("t","U"),
+    52: ("h","=U22"), 53: ("i","=U22"), 54: ("j","=U22"), 
+    55: ("k","=U22"), 56: ("l","=U22"), 57: ("n","=U22"), 
+    58: ("o","=U22"), 59: ("p","=U22"), 60: ("q","=U22"),
+    61: ("r","=U22"), 62: ("s","=U22"), 63: ("t","=U22"),
     64: ("Accident area","i1")
 }
 
@@ -293,6 +294,7 @@ class DataDownloader:
 
         file_name = regions_files.get(region)
         df = None
+        columns_data = None
 
         # Check if provided region is supported
         if file_name == None:
@@ -304,9 +306,14 @@ class DataDownloader:
                 print("WARNING: Not enough data archives, need to update")
                 self.download_data()
 
-        # prepare data converter dictionary for (numpy.genfromtxt)
+        # prepare data converter dictionary and dtypes string for (numpy.loadtxt)
         convert = dict()
+        dtypes = None
         for i in range(0,64):
+            if dtypes is None:
+                dtypes = f'{columns_names_dtypes[i+1][1]}'
+            else:
+                dtypes = f'{dtypes},{columns_names_dtypes[i+1][1]}'
             if columns_names_dtypes[i+1][1][0] == 'i':
                 convert[i] = lambda x: self.parse_i(x) or '-1'
             elif columns_names_dtypes[i+1][1][0] == 'f':
@@ -317,42 +324,34 @@ class DataDownloader:
                 convert[i] = lambda x: self.parse_u_m(x)
 
         # Read csv files from zips
+        print("\nParse tables:")
         for zip_file in glob.glob(f"{self.folder}/*.zip"):
             zf = zipfile.ZipFile(zip_file)
             for csv_file in zf.namelist():
                 if csv_file == file_name:
-                    if df is None:
-                        print("\nParse tables:")
-                        df = numpy.genfromtxt(zf.open(csv_file),
-                                              delimiter=";",
-                                              encoding="cp1250",
-                                              converters=convert,
-                                              dtype='=U22',
-                                              unpack=True,
-                                              usecols=numpy.arange(0,64))
+                    df = numpy.loadtxt(zf.open(csv_file),
+                                            delimiter=";",
+                                            encoding="cp1250",
+                                            converters=convert,
+                                            dtype=dtypes,
+                                            unpack=True,
+                                            usecols=numpy.arange(0,64))
+                    if columns_data == None:
+                        columns_data = df
                     else:
-                        df = numpy.concatenate((df,
-                                               numpy.genfromtxt(zf.open(csv_file),
-                                                                delimiter=";", 
-                                                                encoding="cp1250",
-                                                                dtype='=U22',
-                                                                converters=convert,
-                                                                unpack=True,
-                                                                usecols=numpy.arange(0,64))),
-                                               axis=1)
-                    print(f'...Parse table {file_name} ({region}) from {zip_file} with size rows/columns: {len(df)}/{len(df[0])}')
+                        for j in range(0,len(columns_data)):
+                            columns_data[j] = numpy.concatenate(
+                                (columns_data[j],df[j]), axis=0)
+                    print(f'...Parse table {file_name} ({region}) from {zip_file} with size rows/columns: {len(columns_data)}/{len(columns_data[0])}')
         
         # Add first row with region name
-        columns_data = numpy.insert(df, 0, region, axis=0)
+        columns_data.insert(0, numpy.full((1,len(columns_data[0])), region, dtype='=U3')[0])
 
-        # Set correct dtypes
-        print(f'\nSet dtypes:')
-        columns_data = list(columns_data)
-        for i in range(1, len(columns_data)):
-            columns_data[i] = columns_data[i].astype(columns_names_dtypes[i][1])
-            print(f'...{i}.\t{columns_names_dtypes[i][0]} --- {columns_data[i]} --- "{columns_data[i].dtype}"')
-            
-        return ([element[0] for element in columns_names_dtypes.values()], columns_data)
+        # Check dataset
+        print(f'\nCheck dataset for region: {region} with size rows/columns: {len(columns_data)}/{len(columns_data[0])}')
+        for i in range(0, len(columns_data)):
+            print(f'...{i}.\t{columns_names_dtypes[i][0]} --- {columns_data[i]} --- {columns_data[i].dtype}')
+        return ([element[0] for element in columns_names_dtypes.values()], list(columns_data))
 
 
     def parse_i(self, element):
@@ -473,12 +472,16 @@ class DataDownloader:
                     if not glob.glob(f"{self.folder}/{self.cache_filename.format(i)}"):
                         # Create program and file cache
                         self.regions_cache[i] = self.parse_region_data(i)
-                        pickle.dump(self.regions_cache[i],
-                                    open(f'{self.folder}/{self.cache_filename.format(i)}', "wb"))
+                        print(f'\nSave dataset cache...{self.folder}/{self.cache_filename.format(i)}')
+                        with gzip.open(f'{self.folder}/{self.cache_filename.format(i)}', 'wb') as cache:
+                            pickle.dump(self.regions_cache[i], cache)
+                        print('...Done')
                     else:
                         # Save file cache to program cache
-                        self.regions_cache[i] = pickle.load(
-                                    open(f'{self.folder}/{self.cache_filename.format(i)}', "rb"))
+                        print(f'\nRead dataset cache...{self.folder}/{self.cache_filename.format(i)}')
+                        with gzip.open(f'{self.folder}/{self.cache_filename.format(i)}', 'rb') as cache:
+                            self.regions_cache[i] = pickle.load(cache)
+                        print('...Done')
                 # Concentrate output for all regions
                 if output == None:
                     output = self.regions_cache[i]
@@ -496,12 +499,16 @@ class DataDownloader:
                         if not glob.glob(f"{self.folder}/{self.cache_filename.format(i)}"):
                             # Create program and file cache
                             self.regions_cache[i] = self.parse_region_data(i)
-                            pickle.dump(self.regions_cache[i],
-                                        open(f'{self.folder}/{self.cache_filename.format(i)}', "wb"))
+                            print(f'\nSave dataset cache...{self.folder}/{self.cache_filename.format(i)}')
+                            with gzip.open(f'{self.folder}/{self.cache_filename.format(i)}', 'wb') as cache:
+                                pickle.dump(self.regions_cache[i], cache)
+                            print('...Done')
                         else:
                             # Save file cache to program cache
-                            self.regions_cache[i] = pickle.load(
-                                open(f'{self.folder}/{self.cache_filename.format(i)}', "rb"))
+                            print(f'\nRead dataset cache...{self.folder}/{self.cache_filename.format(i)}')
+                            with gzip.open(f'{self.folder}/{self.cache_filename.format(i)}', 'rb') as cache:
+                                self.regions_cache[i] = pickle.load(cache)
+                            print('...Done')
                     # Concentrate output for all regions
                     if output == None:
                         output = self.regions_cache[i]
