@@ -33,46 +33,50 @@ def get_dataframe(filename: str, verbose: bool = False) -> pd.DataFrame:
 # Ukol 2: následky nehod v jednotlivých regionech
 def plot_conseq(df: pd.DataFrame, fig_location: str = None,
                 show_figure: bool = False):
-    dfs = [pd.melt(df, id_vars=['region'], var_name='type', value_name='value', value_vars=[X]).groupby(["region"]).agg({'value': "sum"})
-            for X in ['p13a','p13b','p13c']]
-    dfs.append(pd.DataFrame(index=dfs[0].index)) 
-    dfs[3]['value'] =  dfs[0]['value'] +  dfs[1]['value'] +  dfs[2]['value']
-
-    dfs[3] = dfs[3].sort_values(by=['value'], ascending=False)
-    dfs[0] = dfs[0].reindex(dfs[3].index)
-    dfs[1] = dfs[1].reindex(dfs[3].index)
-    dfs[2] = dfs[2].reindex(dfs[3].index)
-
-    plt.style.use('seaborn')
-    fig, axes = plt.subplots(4, 1, figsize=(8, 12))
-    ax = axes.flatten()
-    colors = ["xkcd:aqua" ,"xkcd:azure","xkcd:beige",
-              "xkcd:coral","xkcd:gold", "xkcd:grey",
-              "xkcd:indigo","xkcd:lightblue","xkcd:olive",
-              "xkcd:teal","xkcd:yellowgreen","xkcd:lavender",
-              "xkcd:navy","xkcd:sienna",
-    ]
-    for j, (i, df) in enumerate(zip(ax,dfs)):
-        if j == 0:
-            i.set_title('Number of people who died in the accident (p13a)')
-            i.xaxis.set_visible(False)
-        elif j == 1:
-            i.set_title('Number of people who were severely injured (p13b)')
-            i.xaxis.set_visible(False)
-        elif j == 2:
-            i.set_title('Number of people who were slightly injured (p13c)')
-            i.xaxis.set_visible(False)
-        elif j == 3:
-            i.set_title('The total number of accidents in the region')
-            i.set_xlabel('Regions')
-        i.set_ylim([0, (max(df['value'])+max(df['value'])/5)])
-        i.bar(df.index, df['value'], color=colors)
-        i.set_ylabel('Accidents')
-        i.yaxis.grid(True, linestyle='--', which='major', color='grey', alpha=.25)
-
-        for rect, label in zip(i.patches, df['value']):
-            height = rect.get_height()
-            i.text(rect.get_x() + rect.get_width() / 2, height + 5, int(label), ha='center', va='bottom')
+    df = df.rename(columns={'region': 'Regions'})
+    # groupping values
+    df = df.groupby(['Regions'], as_index=False).agg({
+                                    'p13a' : 'sum',
+                                    'p13b' : 'sum',
+                                    'p13c' : 'sum',
+                                    'p1'   : 'count'})
+    # melting values
+    df = pd.melt(df, id_vars    = 'Regions',
+                     var_name   = 'variable',
+                     value_name = 'Number',
+                     value_vars = ['p13a','p13b','p13c','p1'])
+    # fix order
+    print(df)
+    order = df.loc[df['variable'] == 'p1'].sort_values(['Number'], ascending=False)['Regions']
+    # set style
+    sns.set_style("darkgrid")
+    # create grid
+    p = sns.FacetGrid(df,
+                      row="variable",
+                      sharex=False,
+                      sharey=False,
+                      height=3.5,
+                      aspect=3)
+    # set plots on grid
+    p.map(sns.barplot,'Regions','Number', order = order, palette="deep")
+    # setup plots
+    for ax, title in zip(p.axes.flat, [ 'Number of people who died in the accident (p13a)',
+                                        'Number of people who were severely injured (p13b)',
+                                        'Number of people who were slightly injured (p13c)',
+                                        'The total number of accidents in the region'
+                                      ]):
+        ax.set_title(title)
+        if title != 'The total number of accidents in the region':
+            ax.xaxis.set_visible(False)
+        height = 0
+        for p in ax.patches:
+                    height = max(height, p.get_height())
+                    ax.set_ylim([0, height+height/8])
+                    ax.annotate( f'{int(p.get_height())}',
+                                    xy=(p.get_x() + p.get_width() / 2, p.get_height()),
+                                    xytext=(0, 3),
+                                    textcoords="offset points",
+                                    ha='center', va='bottom')
     # Save figure
     if fig_location:
         try:
@@ -83,31 +87,55 @@ def plot_conseq(df: pd.DataFrame, fig_location: str = None,
     if show_figure:
         plt.show()
     
-    plt.close(fig)
+    plt.close()
 
 # Ukol3: příčina nehody a škoda
 def plot_damage(df: pd.DataFrame, fig_location: str = None,
                 show_figure: bool = False):
-    
+    # Select needed regions and columns
+    df = df[['region','p12','p53']]
+    df = df.loc[df['region'].isin(['JHM','HKK','PLK','PHA'])]
+
     # Prepare p12
-    names = ['Not caused by the driver','Speeding','Incorrect overtaking',
+    p12 = ['Not caused by the driver','Speeding','Incorrect overtaking',
              'Not giving priority in driving','Wrong way of driving','Technical defect of the vehicle']
     bins = [(99, 100), (200, 209), (300, 311), (400, 414), (500, 516), (600, 616)]
     index = pd.IntervalIndex.from_tuples(bins)
-    to_name = {interval: name for interval, name in zip(index.values, names)}
-    df['p12'] = pd.CategoricalIndex(pd.cut(df['p12'], index)).rename_categories(to_name)
-    # Prepare p53
-    names = ['<50','50-200','200-500','500-1000','>1000']
+    df['p12'] = pd.CategoricalIndex(pd.cut(df['p12'], index)).rename_categories({interval: name for interval, name in zip(index.values, p12)})
+
+    # Prepare p53b
+    p53 = ['<50','50-199','200-499','500-1000','>1000']
     bins = [(float('-inf'), 49.99), (49.99, 199.99), (199.99, 499.99), (499.99, 1000), (1000, float('inf'))]
     index = pd.IntervalIndex.from_tuples(bins)
-    to_name = {interval: name for interval, name in zip(index.values, names)}
-    df['p53'] = pd.CategoricalIndex(pd.cut(df['p53'], index)).rename_categories(to_name)
-    print(df['p53'])
+    df['p53b'] = pd.CategoricalIndex(pd.cut(df['p53'], index)).rename_categories({interval: name for interval, name in zip(index.values, p53)})
+    
+    # group objects
+    df = df.groupby(['region','p53b','p12']).agg({'p53' : 'count'}).reset_index()
 
-    fig, axes = plt.subplots(2, 2, figsize=(8, 12))
-    ax = axes.flatten()
+    sns.set_style("darkgrid")
+    p = sns.FacetGrid(df,
+                      col="region",
+                      col_wrap=2,
+                      sharex=False,
+                      sharey=False,
+                      height=7,
+                      aspect=0.75)
+    # set plots on grid
+    p.map(sns.barplot, 'p53b', 'p53', 'p12', order=p53, hue_order=p12, palette="deep")
 
-    ax[0] = sns.histplot(data=df['p12'])
+    for ax in p.axes.flat:
+        ax.set_yscale('log')
+        ax.xaxis.set_visible(True)
+        ax.yaxis.set_visible(True)
+        ax.set_yticks([1.e+00,1.e+01,1.e+02,1.e+03,1.e+04,1.e+05])
+        ax.set_ylim((0.5,(1.e+05)-1))
+
+    p.add_legend(title='Accident reason')
+    p.set_titles('{col_name}')
+    p.set(xlabel = 'Damage [thousand Kc]', ylabel = 'Number')
+    plt.subplots_adjust(hspace=.15, wspace=.15)   
+    
+
     # Save figure
     if fig_location:
         try:
@@ -118,7 +146,7 @@ def plot_damage(df: pd.DataFrame, fig_location: str = None,
     if show_figure:
         plt.show()
     
-    plt.close(fig)
+    plt.close()
 
 
 # Ukol 4: povrch vozovky
@@ -133,6 +161,6 @@ if __name__ == "__main__":
     # skript nebude pri testovani pousten primo, ale budou volany konkreni ¨
     # funkce.
     df = get_dataframe("accidents.pkl.gz", verbose=True)
-    #plot_conseq(df, fig_location="01_nasledky.png", show_figure=True)
-    plot_damage(df, "02_priciny.png", True)
-    plot_surface(df, "03_stav.png", True)
+    plot_conseq(df, fig_location="01_nasledky.png", show_figure=False)
+    plot_damage(df, "02_priciny.png", False)
+    #plot_surface(df, "03_stav.png", True)
