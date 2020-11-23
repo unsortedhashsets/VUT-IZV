@@ -2,6 +2,7 @@
 # coding=utf-8
 
 from matplotlib import pyplot as plt
+from matplotlib import dates as mdates 
 import pandas as pd
 import seaborn as sns
 import numpy as np
@@ -18,7 +19,7 @@ def get_dataframe(filename: str, verbose: bool = False) -> pd.DataFrame:
     df = pd.DataFrame()
     for i in raw_df:
         if i == 'p2a':
-            df[i] = pd.to_datetime(raw_df[i], errors='coerce')
+            df['date'] = pd.to_datetime(raw_df[i], errors='coerce')
         elif i == 'region':
             df[i] = raw_df[i].replace(r'^\s*$', np.NaN, regex=True)
         elif i in ['p1','h','i','k','l','n','o','p','q','r','s','t']:
@@ -46,7 +47,6 @@ def plot_conseq(df: pd.DataFrame, fig_location: str = None,
                      value_name = 'Number',
                      value_vars = ['p13a','p13b','p13c','p1'])
     # fix order
-    print(df)
     order = df.loc[df['variable'] == 'p1'].sort_values(['Number'], ascending=False)['Regions']
     # set style
     sns.set_style("darkgrid")
@@ -152,8 +152,70 @@ def plot_damage(df: pd.DataFrame, fig_location: str = None,
 # Ukol 4: povrch vozovky
 def plot_surface(df: pd.DataFrame, fig_location: str = None,
                  show_figure: bool = False):
-    pass
+    df = df[['region','p16','date']]
+    df = df.loc[df['region'].isin(['JHM','HKK','PLK','PHA'])]
+    df['date']=df['date'].astype('datetime64[M]').copy()
 
+    df = pd.crosstab(index=[df['region'],df['date']], columns=df['p16'])
+    df = df.rename(columns={0: 'other state',
+                            1: 'dry surface - unpolluted',
+                            2: 'dry surface - polluted',
+                            3: 'wet surface',
+                            4: 'mud on the road',
+                            5: 'icing on the road, snow passed - sprinkled',
+                            6: 'icing on the road, snow passed - not sprinkled',
+                            7: 'spilled oil, diesel, etc. on the road',
+                            8: 'continuous snow layer, slush',
+                            9: 'sudden change in road condition',
+                           }).reset_index()
+    df = pd.melt(df, id_vars    = ['region','date'],
+                     var_name   = 'variable',
+                     value_name = 'Number',
+                     value_vars = ['other state',
+                                   'dry surface - unpolluted',
+                                   'dry surface - polluted',
+                                   'wet surface',
+                                   'mud on the road',
+                                   'icing on the road, snow passed - sprinkled',
+                                   'icing on the road, snow passed - not sprinkled',
+                                   'spilled oil, diesel, etc. on the road',
+                                   'continuous snow layer, slush',
+                                   'sudden change in road condition'])
+
+    sns.set_style("darkgrid")
+    p = sns.FacetGrid(df,
+                      col="region",
+                      col_wrap=2,
+                      sharex=True,
+                      sharey=False,
+                      height=3,
+                      aspect=2)
+    p.map(sns.lineplot, 'date', 'Number', 'variable', palette="deep")
+
+    p.add_legend(title='Road condition')
+    p.set_titles('{col_name}')
+    p.set(xlabel = 'Accidents date', ylabel = 'Accidents number')
+    p.axes.flat[0].set_xticks(list(p.axes.flat[0].get_xticks())+[18628.])
+    p.axes.flat[0].set_xlim(16714.25, 18650.75)
+    p.axes.flat[0].xaxis.set_major_formatter(mdates.DateFormatter('%Y'))
+
+    for i,ax in enumerate(p.axes.flat):
+        if i%2 != 0:
+            ax.set_ylabel("")
+
+    #plt.subplots_adjust(hspace=.15, wspace=.15)   
+
+    # Save figure
+    if fig_location:
+        try:
+            plt.savefig(fig_location, bbox_inches='tight')
+        except ValueError:
+            raise ValueError(f"ERROR: wrong image dtype, supported: eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff")
+    # Show figure
+    if show_figure:
+        plt.show()
+    
+    plt.close()
 
 if __name__ == "__main__":
     pass
@@ -161,6 +223,6 @@ if __name__ == "__main__":
     # skript nebude pri testovani pousten primo, ale budou volany konkreni ¨
     # funkce.
     df = get_dataframe("accidents.pkl.gz", verbose=True)
-    plot_conseq(df, fig_location="01_nasledky.png", show_figure=False)
-    plot_damage(df, "02_priciny.png", False)
-    #plot_surface(df, "03_stav.png", True)
+    plot_conseq(df, fig_location="01_nasledky.png", show_figure=True)
+    plot_damage(df, "02_priciny.png", True)
+    plot_surface(df, "03_stav.png", True)
