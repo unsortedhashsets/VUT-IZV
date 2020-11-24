@@ -82,6 +82,10 @@ def plot_conseq(df: pd.DataFrame, fig_location: str = None,
         True/False parameter to choose possibility to show the figure
     """
 
+    # Select needed columns
+    df = df[['p1','region','p13a','p13b','p13c']]
+    # Detect some -1 value in p13a, p13b and p13c and replace to 0
+    df = df.replace({'p13a': -1, 'p13b': -1, 'p13c': -1}, 0)
     # Rename column region for future needs
     df = df.rename(columns={'region': 'Regions'})
     # Group future variables value and aggregate it in the needed way
@@ -159,6 +163,7 @@ def plot_damage(df: pd.DataFrame, fig_location: str = None,
     show_figure : bool
         True/False parameter to choose possibility to show the figure
     """
+
     # Select needed regions and columns
     df = df[['region','p12','p53']]
     df = df.loc[df['region'].isin(['JHM','HKK','PLK','PHA'])]
@@ -183,7 +188,7 @@ def plot_damage(df: pd.DataFrame, fig_location: str = None,
            '200-499',
            '500-1000',
            '>1000']
-    bins = [(float('-inf'), 49.99),
+    bins = [(-1, 49.99),
             (49.99, 199.99),
             (199.99, 499.99),
             (499.99, 1000),
@@ -253,6 +258,8 @@ def plot_surface(df: pd.DataFrame, fig_location: str = None,
     df = df[['region','p16','date']]
     df = df.loc[df['region'].isin(['JHM','HKK','PLK','PHA'])]
     df['date']=df['date'].astype('datetime64[M]').copy()
+    # Detect some -1 value in p16 replace to 0
+    df = df.replace({'p16': -1}, 0)
     # Create crosstab
     df = pd.crosstab(index=[df['region'],df['date']], columns=df['p16'])
     # Rename p16 columns
