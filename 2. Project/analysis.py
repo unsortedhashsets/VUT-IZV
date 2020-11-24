@@ -48,10 +48,10 @@ def get_dataframe(filename: str, verbose: bool = False) -> pd.DataFrame:
             if i == 'p2a':
                 df['date'] = pd.to_datetime(raw_df[i], errors='coerce')
             # Copy regions
-            elif i == 'region':
+            elif i in ['p1','region']:
                 df[i] = raw_df[i]
             # Copy strings
-            elif i in ['p1','h','i','k','l','n','o','p','q','r','s','t']:
+            elif i in ['h','i','k','l','n','o','p','q','r','s','t']:
                 df[i] = raw_df[i].replace(r'^\s*$', np.NaN, regex=True).astype("category")
             # Copy ints/floats
             else:
