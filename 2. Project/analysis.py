@@ -152,7 +152,7 @@ def plot_conseq(df: pd.DataFrame, fig_location: str = None,
             plt.savefig(fig_location, bbox_inches='tight')
         except ValueError:
             raise ValueError("""ERROR: wrong image dtype, supported:
-eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff""")
+    eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff""")
     # Show figure
     if show_figure:
         plt.show()
@@ -256,7 +256,7 @@ def plot_damage(df: pd.DataFrame, fig_location: str = None,
             plt.savefig(fig_location, bbox_inches='tight')
         except ValueError:
             raise ValueError("""ERROR: wrong image dtype, supported:
-eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff""")
+    eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff""")
     # Show figure
     if show_figure:
         plt.show()
@@ -351,7 +351,7 @@ def plot_surface(df: pd.DataFrame, fig_location: str = None,
             plt.savefig(fig_location, bbox_inches='tight')
         except ValueError:
             raise ValueError("""ERROR: wrong image dtype, supported:
-eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff""")
+    eps, jpeg, jpg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff""")
     # Show figure
     if show_figure:
         plt.show()
