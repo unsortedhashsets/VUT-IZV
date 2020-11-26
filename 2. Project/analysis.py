@@ -268,7 +268,7 @@ def plot_surface(df: pd.DataFrame, fig_location: str = None,
     """
     plot_surface
         - Prepare appropriate dataframe with ( Variant 2) functions:
-            pd.crosstab, pd.rename, pd.melt.
+            pd.crosstab, pd.rename, pd.stack.
         - Show/Save a line graph that will show for each month
           (X axis - date column) the number of accidents
           at different conditions of the road surface (P16).
@@ -304,22 +304,10 @@ def plot_surface(df: pd.DataFrame, fig_location: str = None,
                     8: 'continuous snow layer, slush',
                     9: 'sudden change in road condition'
                             }
-                   ).reset_index()
-    # Melt to get better view
-    df = pd.melt(df,
-                 id_vars=['region', 'date'],
-                 var_name='variable',
-                 value_name='Number',
-                 value_vars=['other state',
-                             'dry surface - unpolluted',
-                             'dry surface - polluted',
-                             'wet surface',
-                             'mud on the road',
-                             'icing on the road, snow passed - sprinkled',
-                             'icing on the road, snow passed - not sprinkled',
-                             'spilled oil, diesel, etc. on the road',
-                             'continuous snow layer, slush',
-                             'sudden change in road condition'])
+                   )
+    # Stack to get stacked view
+    df = df.stack().rename_axis(index={'p16': 'variable'}
+                                ).rename('Number').reset_index()
 
     # Set sns style
     sns.set_style("darkgrid")
