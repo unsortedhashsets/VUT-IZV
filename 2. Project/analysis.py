@@ -38,6 +38,7 @@ def get_dataframe(filename: str, verbose: bool = False) -> pd.DataFrame:
     try:
         with gzip.open(filename) as cache:
             raw_df = pickle.load(cache)
+            print(raw_df.info())
         df = pd.DataFrame()
     except:
         raise OSError(f"ERROR: {filename} not found or has the wrong format")
@@ -48,11 +49,11 @@ def get_dataframe(filename: str, verbose: bool = False) -> pd.DataFrame:
             # Copy date
             if i == 'p2a':
                 df['date'] = pd.to_datetime(raw_df[i], errors='coerce')
-            # Copy regions
+            # Copy regions and id
             elif i in ['p1', 'region']:
                 df[i] = raw_df[i]
             # Copy strings
-            elif i in ['h', 'i', 'k', 'l', 'n', 'o', 'p', 'q', 'r', 's', 't']:
+            elif raw_df[i].dtypes == 'object':
                 df[i] = raw_df[i].replace(r'^\s*$', np.NaN, regex=True
                                           ).astype("category")
             # Copy ints/floats
