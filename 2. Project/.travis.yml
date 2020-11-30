@@ -1,0 +1,9 @@
+language: python
+jobs:
+  include:
+    - name: "Python 3.8.0 on Xenial Linux"
+      python: 3.8
+install:
+  - pip install -r requirements.txt
+script:
+  - python analysis.py

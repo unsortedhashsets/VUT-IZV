@@ -38,7 +38,6 @@ def get_dataframe(filename: str, verbose: bool = False) -> pd.DataFrame:
     try:
         with gzip.open(filename) as cache:
             raw_df = pickle.load(cache)
-            print(raw_df.info())
         df = pd.DataFrame()
     except:
         raise OSError(f"ERROR: {filename} not found or has the wrong format")
