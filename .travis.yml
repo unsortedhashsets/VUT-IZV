@@ -6,4 +6,5 @@ jobs:
 install:
   - pip install -r requirements.txt
 script:
+  - cd 2_Project
   - python analysis.py
