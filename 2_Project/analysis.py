@@ -205,11 +205,11 @@ def plot_damage(df: pd.DataFrame, fig_location: str = None,
            '200-499',
            '500-1000',
            '>1000']
-    bins = [(-1, 49.99),
-            (49.99, 199.99),
-            (199.99, 499.99),
-            (499.99, 1000),
-            (1000, float('inf'))]
+    bins = [(-1, 499.99),
+            (499.99, 1999.99),
+            (1999.99, 4999.99),
+            (4999.99, 10000),
+            (10000, float('inf'))]
     index = pd.IntervalIndex.from_tuples(bins)
     df['p53b'] = pd.CategoricalIndex(pd.cut(df['p53'], index)
                                      ).rename_categories(
@@ -218,7 +218,7 @@ def plot_damage(df: pd.DataFrame, fig_location: str = None,
     # Group by objects to get better view
     df = df.groupby(['region', 'p53b', 'p12']
                     ).agg({'p53': 'count'}).reset_index()
-
+                    
     # Set sns style
     sns.set_style("darkgrid")
     # Create grid for subplots
