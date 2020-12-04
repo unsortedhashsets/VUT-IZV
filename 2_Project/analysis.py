@@ -256,7 +256,7 @@ def plot_damage(df: pd.DataFrame, fig_location: str = None,
     # Make global settings for subplots
     p.add_legend(title='Accident reason')
     p.set_titles('{col_name}')
-    p.set(xlabel='Damage [thousand Kc]', ylabel='Number')
+    p.set(xlabel='Damage [thousand CZK]', ylabel='Number')
     plt.subplots_adjust(hspace=.15, wspace=.15)
 
     # Save figure
