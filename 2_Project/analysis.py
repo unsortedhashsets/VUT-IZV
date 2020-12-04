@@ -1,6 +1,14 @@
 #!/usr/bin/env python3.8
 # coding=utf-8
 
+"""
+| Project Implementation for IZV 2020/2021
+| Script analysis.py
+| Date: 04.12.2020
+| Author: Mikhail Abramov
+| xabram00@stud.fit.vutbr.cz
+"""
+
 from matplotlib import pyplot as plt
 from matplotlib import dates as mdates
 import pandas as pd
@@ -205,7 +213,7 @@ def plot_damage(df: pd.DataFrame, fig_location: str = None,
            '200-499',
            '500-1000',
            '>1000']
-    # Convert data from hundreds to thousends 500h -> 50th 
+    # Convert data from hundreds to thousends 500h -> 50th
     bins = [(-1, 499.99),
             (499.99, 1999.99),
             (1999.99, 4999.99),
