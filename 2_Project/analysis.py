@@ -205,6 +205,7 @@ def plot_damage(df: pd.DataFrame, fig_location: str = None,
            '200-499',
            '500-1000',
            '>1000']
+    # Convert data from hundreds to thousends 500h -> 50th 
     bins = [(-1, 499.99),
             (499.99, 1999.99),
             (1999.99, 4999.99),
@@ -218,7 +219,7 @@ def plot_damage(df: pd.DataFrame, fig_location: str = None,
     # Group by objects to get better view
     df = df.groupby(['region', 'p53b', 'p12']
                     ).agg({'p53': 'count'}).reset_index()
-                    
+
     # Set sns style
     sns.set_style("darkgrid")
     # Create grid for subplots
