@@ -8,3 +8,6 @@ install:
 script:
   - cd 2_Project
   - python analysis.py
+  - cd ..
+  - cd 3_Project
+  - python geo.py

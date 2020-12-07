@@ -1,13 +1,21 @@
 #!/usr/bin/python3.8
 # coding=utf-8
+
+"""
+| Project Implementation for IZV 2020/2021
+| Script geo.py
+| Date: 09.12.2020
+| Author: Mikhail Abramov
+| xabram00@stud.fit.vutbr.cz
+"""
+
 import pandas as pd
 import geopandas
 import matplotlib.pyplot as plt
-from matplotlib import gridspec
 import contextily as ctx
 import sklearn.cluster
 import numpy as np
-
+from matplotlib import gridspec
 
 def make_geo(df: pd.DataFrame) -> geopandas.GeoDataFrame:
     """
@@ -42,7 +50,6 @@ def make_geo(df: pd.DataFrame) -> geopandas.GeoDataFrame:
 def plot_geo(gdf: geopandas.GeoDataFrame,
              fig_location: str = None,
              show_figure: bool = False):
-    """ Vykresleni grafu s dvemi podgrafy podle lokality nehody """
     """
     plot_conseq
         - Prepare appropriate dataframe
@@ -101,13 +108,25 @@ def plot_geo(gdf: geopandas.GeoDataFrame,
 def plot_cluster(gdf: geopandas.GeoDataFrame,
                  fig_location: str = None,
                  show_figure: bool = False):
-    """ Vykresleni grafu s lokalitou vsech nehod v kraji shlukovanych do clusteru """
+    """
+    plot_cluster
+        - Prepare appropriate dataframe
+        - Show/Save map with accident's clusterization and info bar
 
-
+    Parameters
+    ----------
+    gdf: geopandas.GeoDataFrame
+        Incoming dataframe
+    fig_location : str
+        Directory and filename to save figure
+    show_figure : bool
+        True/False parameter to choose possibility to show the figure
+    """
+    pass
 
 if __name__ == "__main__":
     # zde muzete delat libovolne modifikace
     gdf = make_geo(pd.read_pickle("accidents.pkl.gz"))
     plot_geo(gdf, "geo1.png", False)
-    plot_cluster(gdf, "geo2.png", True)
+    plot_cluster(gdf, "geo2.png", False)
 

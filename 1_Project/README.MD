@@ -17,7 +17,7 @@ DATASET for regions: ['STC', 'MSK', 'PAK']:
 ...
 ```
 
-### To use get_stat.py module use:
+### To test get_stat.py module use:
 
 To show figure with all regions and save it into the `data/figures/` with name and format `test1.png`
 
