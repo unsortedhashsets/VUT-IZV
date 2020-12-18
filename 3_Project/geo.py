@@ -135,7 +135,7 @@ def plot_cluster(gdf: geopandas.GeoDataFrame,
     kdf = pd.DataFrame()
     kdf['X'] = gdf.centroid.x
     kdf['Y'] = gdf.centroid.y
-    kmeans = skl.KMeans(n_clusters=16, random_state=0).fit(kdf)
+    kmeans = skl.MiniBatchKMeans(n_clusters=15).fit(kdf)
     kdf = pd.DataFrame(kmeans.labels_,
                        columns=['Cluster']).groupby(
                                ['Cluster']).agg(
@@ -187,5 +187,5 @@ def plot_cluster(gdf: geopandas.GeoDataFrame,
 if __name__ == "__main__":
     # zde muzete delat libovolne modifikace
     gdf = make_geo(pd.read_pickle("accidents.pkl.gz"))
-    plot_geo(gdf, "geo1.png", True)
-    plot_cluster(gdf, "geo2.png", True)
+    plot_geo(gdf, "geo1.png", False)
+    plot_cluster(gdf, "geo2.png", False)
