@@ -40,10 +40,28 @@ def make_geo(df: pd.DataFrame) -> geopandas.GeoDataFrame:
 
     # Delete rows with NaN values from columns `d` and `e`
     df = df.dropna(subset=['d', 'e'])
+    gdf = pd.DataFrame()
+
+    for i in df:
+        # Copy date
+        if i == 'p2a':
+            gdf['date'] = pd.to_datetime(df[i], errors='coerce')
+        # Copy regions and id
+        elif i in ['p1', 'region']:
+            gdf[i] = df[i]
+        # Copy strings
+        elif df[i].dtypes == 'object':
+            gdf[i] = df[i].replace(r'^\s*$', np.NaN, regex=True
+                                   ).astype("category")
+        # Copy ints/floats
+        else:
+            gdf[i] = pd.to_numeric(df[i],
+                                   downcast='signed',
+                                   errors='coerce')
     # Create geometry column as point from `d` and `e` values
-    gdf = geopandas.GeoDataFrame(df,
-                                 geometry=geopandas.points_from_xy(df['d'],
-                                                                   df['e']),
+    gdf = geopandas.GeoDataFrame(gdf,
+                                 geometry=geopandas.points_from_xy(gdf['d'],
+                                                                   gdf['e']),
                                  crs="EPSG:5514")
     # Convert coordinates points in WGS 84 (3857) from S-JTSK (5514)
     gdf = gdf.to_crs(epsg=3857)
